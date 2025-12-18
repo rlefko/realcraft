@@ -1,0 +1,108 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+bin/
+obj/
+lib/
+*.build/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.xcodeproj/
+*.xcworkspace/
+*.sln
+*.vcxproj
+*.vcxproj.*
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.opensdf
+*.cachefile
+*.VC.db
+*.VC.opendb
+
+# Compiled objects and libraries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+*.dSYM/
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Dependency directories
+vendor/
+extern/
+third_party/
+deps/
+
+# Package manager
+vcpkg_installed/
+conan/
+conanbuildinfo.*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor backups and temps
+*~
+*.swp
+*.swo
+*.swn
+*.bak
+*.tmp
+*.temp
+\#*\#
+.\#*
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Logs
+*.log
+logs/
+
+# Generated shader files
+*.spv
+*.metallib
+
+# Asset cache
+.cache/
+cache/
+
+# Claude-related files
+CLAUDE.md
+.claudeignore
+.claude/
+.claude_indexer/
+.index_cache/
+
+# Local configuration
+*.local
+.env
+.env.*
