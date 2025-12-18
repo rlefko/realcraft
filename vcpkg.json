@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "realcraft",
+  "version": "0.1.0",
+  "description": "RealCraft - Realistic voxel sandbox game engine",
+  "license": "MIT",
+  "supports": "!(uwp | arm | wasm32)",
+  "dependencies": [
+    "glm",
+    "spdlog",
+    "gtest",
+    "nlohmann-json"
+  ]
+}

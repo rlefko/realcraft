@@ -49,6 +49,7 @@ third_party/
 deps/
 
 # Package manager
+vcpkg/
 vcpkg_installed/
 conan/
 conanbuildinfo.*
@@ -106,3 +107,11 @@ CLAUDE.md
 *.local
 .env
 .env.*
+
+# Claude Code Memory
+.claude/hooks/
+.claude/settings.local.json
+.claude/utils/
+.mcp.json
+.ui-quality/
+.claude-indexer/

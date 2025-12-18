@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+jobs:
+  build-macos:
+    name: macOS (Metal)
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export GitHub Actions cache environment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
+
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28"
+
+      - name: Configure and Build
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'ci-macos'
+          buildPreset: 'ci-macos'
+
+      - name: Run Tests
+        run: ctest --preset ci-macos --output-on-failure
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: realcraft-macos
+          path: build/ci-macos/bin/
+          retention-days: 7
+
+  build-windows:
+    name: Windows (DX12)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export GitHub Actions cache environment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
+
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28"
+
+      - name: Configure and Build
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'ci-windows'
+          buildPreset: 'ci-windows'
+
+      - name: Run Tests
+        run: ctest --preset ci-windows --output-on-failure
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: realcraft-windows
+          path: build/ci-windows/bin/
+          retention-days: 7
+
+  build-linux:
+    name: Linux (Vulkan)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libgl1-mesa-dev \
+            libvulkan-dev
+
+      - name: Export GitHub Actions cache environment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
+
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28"
+
+      - name: Configure and Build
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'ci-linux'
+          buildPreset: 'ci-linux'
+
+      - name: Run Tests
+        run: ctest --preset ci-linux --output-on-failure
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: realcraft-linux
+          path: build/ci-linux/bin/
+          retention-days: 7

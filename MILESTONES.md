@@ -16,18 +16,18 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 0: Project Foundation `[ ]`
+## Phase 0: Project Foundation `[~]`
 
 **Goal:** Establish build system, project structure, and development infrastructure
 
-### Milestone 0.1: Build System & Tooling `[Low]`
+### Milestone 0.1: Build System & Tooling `[Low]` `[x]`
 
-- [ ] Create CMakeLists.txt with cross-platform configuration
-- [ ] Configure C++20 compiler settings and optimizations
-- [ ] Implement platform detection (macOS, Windows, Linux)
-- [ ] Set up dependency management (vcpkg or Conan)
-- [ ] Create build scripts for Debug/Release configurations
-- [ ] Configure CI/CD pipeline (GitHub Actions)
+- [x] Create CMakeLists.txt with cross-platform configuration
+- [x] Configure C++20 compiler settings and optimizations
+- [x] Implement platform detection (macOS, Windows, Linux)
+- [x] Set up dependency management (vcpkg or Conan)
+- [x] Create build scripts for Debug/Release configurations
+- [x] Configure CI/CD pipeline (GitHub Actions)
 
 ### Milestone 0.2: Project Structure `[Low]`
 
