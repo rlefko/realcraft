@@ -1,8 +1,8 @@
 // RealCraft - Placeholder Test
 // Verifies that the test infrastructure is working
 
-#include <gtest/gtest.h>
 #include <glm/glm.hpp>
+#include <gtest/gtest.h>
 
 TEST(BuildSystemTest, PlaceholderTest) {
     // This test verifies that the build system and test infrastructure work

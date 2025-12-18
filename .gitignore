@@ -115,3 +115,16 @@ CLAUDE.md
 .mcp.json
 .ui-quality/
 .claude-indexer/
+
+# Pre-commit
+.pre-commit-cache/
+
+# Additional shader outputs
+*.dxc
+*.cso
+
+# Asset pipeline cache
+.asset_cache/
+
+# clangd
+.clangd/

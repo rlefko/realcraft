@@ -29,19 +29,19 @@ This document outlines the complete development roadmap for RealCraft, organized
 - [x] Create build scripts for Debug/Release configurations
 - [x] Configure CI/CD pipeline (GitHub Actions)
 
-### Milestone 0.2: Project Structure `[Low]`
+### Milestone 0.2: Project Structure `[Low]` `[x]`
 
-- [ ] Create directory layout:
-  - [ ] `src/` - Source files organized by subsystem
-  - [ ] `include/` - Public headers
-  - [ ] `shaders/` - MSL, HLSL, GLSL shader sources
-  - [ ] `assets/` - Textures, sounds, data files
-  - [ ] `tests/` - Unit and integration tests
-  - [ ] `tools/` - Build and development utilities
-- [ ] Create .gitignore with appropriate exclusions
-- [ ] Create .clang-format for code style consistency
-- [ ] Create .editorconfig for editor settings
-- [ ] Set up pre-commit hooks for formatting
+- [x] Create directory layout:
+  - [x] `src/` - Source files organized by subsystem
+  - [x] `include/` - Public headers
+  - [x] `shaders/` - MSL, HLSL, GLSL shader sources
+  - [x] `assets/` - Textures, sounds, data files
+  - [x] `tests/` - Unit and integration tests
+  - [x] `tools/` - Build and development utilities
+- [x] Create .gitignore with appropriate exclusions
+- [x] Create .clang-format for code style consistency
+- [x] Create .editorconfig for editor settings
+- [x] Set up pre-commit hooks for formatting
 
 ### Milestone 0.3: Third-Party Dependencies `[Medium]`
 

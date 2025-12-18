@@ -1,9 +1,9 @@
 // RealCraft - Realistic Voxel Sandbox Game Engine
 // main.cpp - Entry point
 
-#include <spdlog/spdlog.h>
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 
 #include <iostream>
 #include <string>
@@ -46,7 +46,7 @@ std::string get_graphics_api_name() {
 #endif
 }
 
-} // namespace
+}  // namespace
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // Initialize logging
@@ -63,10 +63,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     spdlog::info("GLM test: vec3({}, {}, {})", test_vector.x, test_vector.y, test_vector.z);
 
     // Verify nlohmann_json is working
-    nlohmann::json test_json = {
-        {"engine", "RealCraft"},
-        {"version", VERSION}
-    };
+    nlohmann::json test_json = {{"engine", "RealCraft"}, {"version", VERSION}};
     spdlog::info("JSON test: {}", test_json.dump());
 
     spdlog::info("Build system verification complete!");
