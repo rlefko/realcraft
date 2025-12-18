@@ -9,6 +9,7 @@
     "glm",
     "spdlog",
     "gtest",
-    "nlohmann-json"
+    "nlohmann-json",
+    "bullet3"
   ]
 }
