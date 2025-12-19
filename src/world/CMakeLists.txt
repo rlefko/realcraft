@@ -1,0 +1,40 @@
+# src/world/CMakeLists.txt
+# World subsystem library
+
+set(WORLD_SOURCES
+    block.cpp
+    block_registry.cpp
+    chunk.cpp
+    chunk_data.cpp
+    origin_shifter.cpp
+    serialization.cpp
+    world_manager.cpp
+)
+
+# Create static library
+add_library(realcraft_world STATIC ${WORLD_SOURCES})
+
+# Link dependencies
+target_link_libraries(realcraft_world
+    PUBLIC
+        realcraft::platform
+        realcraft::core
+    PRIVATE
+        spdlog::spdlog
+        ZLIB::ZLIB
+        glm::glm
+)
+
+# Include directories
+target_include_directories(realcraft_world
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# Apply compiler settings
+realcraft_configure_target(realcraft_world)
+
+# Alias for cleaner CMake usage
+add_library(realcraft::world ALIAS realcraft_world)

@@ -10,6 +10,9 @@ add_subdirectory(graphics)
 # Add core subdirectory (builds realcraft::core library)
 add_subdirectory(core)
 
+# Add world subdirectory (builds realcraft::world library)
+add_subdirectory(world)
+
 add_executable(realcraft
     main.cpp
 )
@@ -25,6 +28,7 @@ realcraft_link_dependencies(realcraft)
 target_link_libraries(realcraft
     PRIVATE
         realcraft::core
+        realcraft::world
 )
 
 # Include directories
