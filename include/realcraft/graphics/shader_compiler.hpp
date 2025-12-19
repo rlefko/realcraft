@@ -24,7 +24,7 @@ namespace realcraft::graphics {
 struct ShaderCompileOptions {
     ShaderStage stage = ShaderStage::Vertex;
     std::string entry_point = "main";
-    std::vector<std::string> defines;       // Preprocessor definitions
+    std::vector<std::string> defines;        // Preprocessor definitions
     std::vector<std::string> include_paths;  // Include search paths
     bool generate_debug_info = false;
     bool optimize = true;
@@ -38,9 +38,9 @@ struct ShaderCompileOptions {
 struct CompiledShader {
     bool success = false;
     std::string error_message;
-    std::vector<uint8_t> spirv_bytecode;    // SPIR-V bytecode (Vulkan)
-    std::vector<uint8_t> msl_bytecode;      // MSL bytecode or source (Metal)
-    std::string msl_source;                  // MSL source code (for debugging)
+    std::vector<uint8_t> spirv_bytecode;  // SPIR-V bytecode (Vulkan)
+    std::vector<uint8_t> msl_bytecode;    // MSL bytecode or source (Metal)
+    std::string msl_source;               // MSL source code (for debugging)
     ShaderReflection reflection;
 };
 
@@ -67,16 +67,14 @@ public:
     // ========================================================================
 
     // Compile GLSL source to SPIR-V
-    [[nodiscard]] CompiledShader compile_glsl(std::string_view source,
-                                               const ShaderCompileOptions& options);
+    [[nodiscard]] CompiledShader compile_glsl(std::string_view source, const ShaderCompileOptions& options);
 
     // Compile GLSL file to SPIR-V
     [[nodiscard]] CompiledShader compile_glsl_file(const std::filesystem::path& path,
-                                                    const ShaderCompileOptions& options);
+                                                   const ShaderCompileOptions& options);
 
     // Async compilation
-    [[nodiscard]] std::future<CompiledShader> compile_glsl_async(std::string source,
-                                                                   ShaderCompileOptions options);
+    [[nodiscard]] std::future<CompiledShader> compile_glsl_async(std::string source, ShaderCompileOptions options);
 
     // ========================================================================
     // Cross-Compilation
@@ -96,14 +94,12 @@ public:
     // Hot-Reload Support
     // ========================================================================
 
-    using ReloadCallback = std::function<void(const std::filesystem::path& path,
-                                               const CompiledShader& shader)>;
-    using ErrorCallback = std::function<void(const std::filesystem::path& path,
-                                              const std::string& error)>;
+    using ReloadCallback = std::function<void(const std::filesystem::path& path, const CompiledShader& shader)>;
+    using ErrorCallback = std::function<void(const std::filesystem::path& path, const std::string& error)>;
 
     // Watch a shader file for changes
-    void watch_file(const std::filesystem::path& path, const ShaderCompileOptions& options,
-                    ReloadCallback on_reload, ErrorCallback on_error = nullptr);
+    void watch_file(const std::filesystem::path& path, const ShaderCompileOptions& options, ReloadCallback on_reload,
+                    ErrorCallback on_error = nullptr);
 
     // Stop watching a file
     void stop_watching(const std::filesystem::path& path);

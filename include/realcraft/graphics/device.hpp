@@ -51,12 +51,9 @@ public:
     [[nodiscard]] virtual std::unique_ptr<Sampler> create_sampler(const SamplerDesc& desc) = 0;
     [[nodiscard]] virtual std::unique_ptr<Shader> create_shader(const ShaderDesc& desc) = 0;
     [[nodiscard]] virtual std::unique_ptr<Pipeline> create_pipeline(const PipelineDesc& desc) = 0;
-    [[nodiscard]] virtual std::unique_ptr<ComputePipeline>
-    create_compute_pipeline(const ComputePipelineDesc& desc) = 0;
-    [[nodiscard]] virtual std::unique_ptr<RenderPass>
-    create_render_pass(const RenderPassDesc& desc) = 0;
-    [[nodiscard]] virtual std::unique_ptr<Framebuffer>
-    create_framebuffer(const FramebufferDesc& desc) = 0;
+    [[nodiscard]] virtual std::unique_ptr<ComputePipeline> create_compute_pipeline(const ComputePipelineDesc& desc) = 0;
+    [[nodiscard]] virtual std::unique_ptr<RenderPass> create_render_pass(const RenderPassDesc& desc) = 0;
+    [[nodiscard]] virtual std::unique_ptr<Framebuffer> create_framebuffer(const FramebufferDesc& desc) = 0;
 
     // ========================================================================
     // Command Buffers

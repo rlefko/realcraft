@@ -8,7 +8,6 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
-
 #include <realcraft/graphics/buffer.hpp>
 #include <realcraft/graphics/command_buffer.hpp>
 #include <realcraft/graphics/device.hpp>
@@ -192,9 +191,8 @@ public:
     void begin() override;
     void end() override;
 
-    void begin_render_pass(const RenderPassDesc& desc, Texture* color_attachment,
-                           Texture* depth_attachment, const ClearValue& color_clear,
-                           const ClearValue& depth_clear) override;
+    void begin_render_pass(const RenderPassDesc& desc, Texture* color_attachment, Texture* depth_attachment,
+                           const ClearValue& color_clear, const ClearValue& depth_clear) override;
     void end_render_pass() override;
 
     void bind_pipeline(const Pipeline* pipeline) override;
@@ -202,33 +200,26 @@ public:
 
     void bind_vertex_buffer(uint32_t slot, const Buffer* buffer, size_t offset) override;
     void bind_index_buffer(const Buffer* buffer, IndexType type, size_t offset) override;
-    void bind_uniform_buffer(uint32_t binding, const Buffer* buffer, size_t offset,
-                             size_t size) override;
+    void bind_uniform_buffer(uint32_t binding, const Buffer* buffer, size_t offset, size_t size) override;
     void bind_texture(uint32_t binding, const Texture* texture, const Sampler* sampler) override;
-    void bind_storage_buffer(uint32_t binding, const Buffer* buffer, size_t offset,
-                             size_t size) override;
+    void bind_storage_buffer(uint32_t binding, const Buffer* buffer, size_t offset, size_t size) override;
 
     void set_viewport(const Viewport& viewport) override;
     void set_scissor(const Rect& scissor) override;
     void set_blend_constant(float r, float g, float b, float a) override;
-    void push_constants(ShaderStage stage, uint32_t offset, uint32_t size,
-                        const void* data) override;
+    void push_constants(ShaderStage stage, uint32_t offset, uint32_t size, const void* data) override;
 
-    void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex,
-              uint32_t first_instance) override;
-    void draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index,
-                      int32_t vertex_offset, uint32_t first_instance) override;
+    void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance) override;
+    void draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset,
+                      uint32_t first_instance) override;
 
     void begin_compute_pass() override;
     void end_compute_pass() override;
     void dispatch(uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z) override;
 
-    void copy_buffer(const Buffer* src, Buffer* dst, size_t src_offset, size_t dst_offset,
-                     size_t size) override;
-    void copy_buffer_to_texture(const Buffer* src, Texture* dst,
-                                const BufferImageCopy& region) override;
-    void copy_texture_to_buffer(const Texture* src, Buffer* dst,
-                                const BufferImageCopy& region) override;
+    void copy_buffer(const Buffer* src, Buffer* dst, size_t src_offset, size_t dst_offset, size_t size) override;
+    void copy_buffer_to_texture(const Buffer* src, Texture* dst, const BufferImageCopy& region) override;
+    void copy_texture_to_buffer(const Texture* src, Buffer* dst, const BufferImageCopy& region) override;
 
     id<MTLCommandBuffer> get_mtl_command_buffer() const;
 
@@ -255,8 +246,7 @@ std::unique_ptr<Texture> create_metal_texture(id<MTLDevice> device, const Textur
 std::unique_ptr<Sampler> create_metal_sampler(id<MTLDevice> device, const SamplerDesc& desc);
 std::unique_ptr<Shader> create_metal_shader(id<MTLDevice> device, const ShaderDesc& desc);
 std::unique_ptr<Pipeline> create_metal_pipeline(id<MTLDevice> device, const PipelineDesc& desc);
-std::unique_ptr<ComputePipeline> create_metal_compute_pipeline(id<MTLDevice> device,
-                                                                const ComputePipelineDesc& desc);
+std::unique_ptr<ComputePipeline> create_metal_compute_pipeline(id<MTLDevice> device, const ComputePipelineDesc& desc);
 std::unique_ptr<RenderPass> create_metal_render_pass(const RenderPassDesc& desc);
 std::unique_ptr<Framebuffer> create_metal_framebuffer(const FramebufferDesc& desc);
 std::unique_ptr<CommandBuffer> create_metal_command_buffer(id<MTLCommandQueue> queue);

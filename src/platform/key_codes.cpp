@@ -1,11 +1,10 @@
 // RealCraft Platform Abstraction Layer
 // key_codes.cpp - Key code string conversion
 
-#include <realcraft/platform/key_codes.hpp>
-
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <realcraft/platform/key_codes.hpp>
 #include <string>
 #include <unordered_map>
 

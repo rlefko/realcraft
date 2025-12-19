@@ -7,21 +7,20 @@
 #include <realcraft/platform/window.hpp>
 
 // Graphics
-#include <realcraft/graphics/device.hpp>
-#include <realcraft/graphics/command_buffer.hpp>
-#include <realcraft/graphics/swap_chain.hpp>
-#include <realcraft/graphics/types.hpp>
-
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+
+#include <realcraft/graphics/command_buffer.hpp>
+#include <realcraft/graphics/device.hpp>
+#include <realcraft/graphics/swap_chain.hpp>
+#include <realcraft/graphics/types.hpp>
 
 // Bullet Physics
 #include <btBulletDynamicsCommon.h>
 
 // FastNoise2
 #include <FastNoise/FastNoise.h>
-
 #include <cmath>
 #include <format>
 #include <iostream>
@@ -256,18 +255,15 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             float b = 0.5f + 0.5f * std::sin(static_cast<float>(total_time) + 4.189f);
 
             realcraft::graphics::RenderPassDesc pass_desc;
-            pass_desc.color_attachments.push_back({
-                realcraft::graphics::TextureFormat::BGRA8Unorm,
-                realcraft::graphics::LoadOp::Clear,
-                realcraft::graphics::StoreOp::Store
-            });
+            pass_desc.color_attachments.push_back({realcraft::graphics::TextureFormat::BGRA8Unorm,
+                                                   realcraft::graphics::LoadOp::Clear,
+                                                   realcraft::graphics::StoreOp::Store});
 
             realcraft::graphics::ClearValue color_clear;
             color_clear.color = {r, g, b, 1.0f};
             realcraft::graphics::ClearValue depth_clear;
 
-            cmd->begin_render_pass(pass_desc, swap_chain->get_current_texture(),
-                                   nullptr, color_clear, depth_clear);
+            cmd->begin_render_pass(pass_desc, swap_chain->get_current_texture(), nullptr, color_clear, depth_clear);
             cmd->end_render_pass();
         }
 
@@ -285,9 +281,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
         if (fps_update_timer >= FPS_UPDATE_INTERVAL) {
             fps_update_timer = 0.0;
             auto size = window->get_framebuffer_size();
-            std::string title =
-                std::format("RealCraft | {}x{} | {:.1f} FPS | Frame: {}", size.x, size.y,
-                            frame_timer.get_average_fps(), frame_timer.get_frame_count());
+            std::string title = std::format("RealCraft | {}x{} | {:.1f} FPS | Frame: {}", size.x, size.y,
+                                            frame_timer.get_average_fps(), frame_timer.get_frame_count());
             window->set_title(title);
         }
     }

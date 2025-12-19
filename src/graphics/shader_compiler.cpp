@@ -1,22 +1,19 @@
 // RealCraft Graphics Abstraction Layer
 // shader_compiler.cpp - Shader compilation and cross-compilation
 
-#include <realcraft/graphics/shader_compiler.hpp>
-
-#include <glslang/Public/ShaderLang.h>
-#include <glslang/Public/ResourceLimits.h>
-#include <glslang/SPIRV/GlslangToSpv.h>
-
-#include <spirv_cross/spirv_cross.hpp>
-#include <spirv_cross/spirv_msl.hpp>
-#include <spirv_cross/spirv_glsl.hpp>
-#include <spirv_cross/spirv_reflect.hpp>
-
 #include <spdlog/spdlog.h>
 
 #include <chrono>
 #include <fstream>
+#include <glslang/Public/ResourceLimits.h>
+#include <glslang/Public/ShaderLang.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 #include <mutex>
+#include <realcraft/graphics/shader_compiler.hpp>
+#include <spirv_cross/spirv_cross.hpp>
+#include <spirv_cross/spirv_glsl.hpp>
+#include <spirv_cross/spirv_msl.hpp>
+#include <spirv_cross/spirv_reflect.hpp>
 #include <unordered_map>
 
 namespace realcraft::graphics {
@@ -33,15 +30,24 @@ void initialize_glslang() {
 // Convert ShaderStage to glslang stage
 EShLanguage to_glslang_stage(ShaderStage stage) {
     switch (stage) {
-        case ShaderStage::Vertex: return EShLangVertex;
-        case ShaderStage::Fragment: return EShLangFragment;
-        case ShaderStage::Compute: return EShLangCompute;
-        case ShaderStage::RayGeneration: return EShLangRayGen;
-        case ShaderStage::RayMiss: return EShLangMiss;
-        case ShaderStage::RayClosestHit: return EShLangClosestHit;
-        case ShaderStage::RayAnyHit: return EShLangAnyHit;
-        case ShaderStage::RayIntersection: return EShLangIntersect;
-        default: return EShLangVertex;
+        case ShaderStage::Vertex:
+            return EShLangVertex;
+        case ShaderStage::Fragment:
+            return EShLangFragment;
+        case ShaderStage::Compute:
+            return EShLangCompute;
+        case ShaderStage::RayGeneration:
+            return EShLangRayGen;
+        case ShaderStage::RayMiss:
+            return EShLangMiss;
+        case ShaderStage::RayClosestHit:
+            return EShLangClosestHit;
+        case ShaderStage::RayAnyHit:
+            return EShLangAnyHit;
+        case ShaderStage::RayIntersection:
+            return EShLangIntersect;
+        default:
+            return EShLangVertex;
     }
 }
 
@@ -205,8 +211,7 @@ ShaderCompiler::~ShaderCompiler() {
 ShaderCompiler::ShaderCompiler(ShaderCompiler&&) noexcept = default;
 ShaderCompiler& ShaderCompiler::operator=(ShaderCompiler&&) noexcept = default;
 
-CompiledShader ShaderCompiler::compile_glsl(std::string_view source,
-                                             const ShaderCompileOptions& options) {
+CompiledShader ShaderCompiler::compile_glsl(std::string_view source, const ShaderCompileOptions& options) {
     CompiledShader result;
     result.reflection.stage = options.stage;
     result.reflection.entry_point = options.entry_point;
@@ -221,8 +226,7 @@ CompiledShader ShaderCompiler::compile_glsl(std::string_view source,
     shader.setSourceEntryPoint(options.entry_point.c_str());
 
     // Set environment
-    shader.setEnvInput(glslang::EShSourceGlsl, glslang_stage, glslang::EShClientVulkan,
-                       glslang::EShTargetVulkan_1_2);
+    shader.setEnvInput(glslang::EShSourceGlsl, glslang_stage, glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
     shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
     shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
 
@@ -302,7 +306,7 @@ CompiledShader ShaderCompiler::compile_glsl(std::string_view source,
 }
 
 CompiledShader ShaderCompiler::compile_glsl_file(const std::filesystem::path& path,
-                                                   const ShaderCompileOptions& options) {
+                                                 const ShaderCompileOptions& options) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         CompiledShader result;
@@ -315,10 +319,8 @@ CompiledShader ShaderCompiler::compile_glsl_file(const std::filesystem::path& pa
     return compile_glsl(source, options);
 }
 
-std::future<CompiledShader> ShaderCompiler::compile_glsl_async(std::string source,
-                                                                 ShaderCompileOptions options) {
-    return std::async(std::launch::async, [this, source = std::move(source),
-                                           options = std::move(options)]() mutable {
+std::future<CompiledShader> ShaderCompiler::compile_glsl_async(std::string source, ShaderCompileOptions options) {
+    return std::async(std::launch::async, [this, source = std::move(source), options = std::move(options)]() mutable {
         return compile_glsl(source, options);
     });
 }
@@ -368,9 +370,8 @@ std::optional<ShaderReflection> ShaderCompiler::reflect_spirv(std::span<const ui
     }
 }
 
-void ShaderCompiler::watch_file(const std::filesystem::path& path,
-                                const ShaderCompileOptions& options, ReloadCallback on_reload,
-                                ErrorCallback on_error) {
+void ShaderCompiler::watch_file(const std::filesystem::path& path, const ShaderCompileOptions& options,
+                                ReloadCallback on_reload, ErrorCallback on_error) {
     std::lock_guard<std::mutex> lock(impl_->watched_files_mutex);
 
     Impl::WatchedFile watched;
@@ -401,12 +402,14 @@ void ShaderCompiler::stop_watching_all() {
 }
 
 void ShaderCompiler::poll_file_changes() {
-    if (!impl_->hot_reload_enabled) return;
+    if (!impl_->hot_reload_enabled)
+        return;
 
     std::lock_guard<std::mutex> lock(impl_->watched_files_mutex);
 
     for (auto& [path_str, watched] : impl_->watched_files) {
-        if (!std::filesystem::exists(watched.path)) continue;
+        if (!std::filesystem::exists(watched.path))
+            continue;
 
         auto current_modified = std::filesystem::last_write_time(watched.path);
         if (current_modified > watched.last_modified) {
@@ -441,42 +444,68 @@ void ShaderCompiler::set_hot_reload_enabled(bool enabled) {
 // ============================================================================
 
 std::optional<ShaderStage> shader_stage_from_extension(std::string_view extension) {
-    if (extension == ".vert" || extension == ".vs") return ShaderStage::Vertex;
-    if (extension == ".frag" || extension == ".fs") return ShaderStage::Fragment;
-    if (extension == ".comp") return ShaderStage::Compute;
-    if (extension == ".rgen") return ShaderStage::RayGeneration;
-    if (extension == ".rmiss") return ShaderStage::RayMiss;
-    if (extension == ".rchit") return ShaderStage::RayClosestHit;
-    if (extension == ".rahit") return ShaderStage::RayAnyHit;
-    if (extension == ".rint") return ShaderStage::RayIntersection;
+    if (extension == ".vert" || extension == ".vs")
+        return ShaderStage::Vertex;
+    if (extension == ".frag" || extension == ".fs")
+        return ShaderStage::Fragment;
+    if (extension == ".comp")
+        return ShaderStage::Compute;
+    if (extension == ".rgen")
+        return ShaderStage::RayGeneration;
+    if (extension == ".rmiss")
+        return ShaderStage::RayMiss;
+    if (extension == ".rchit")
+        return ShaderStage::RayClosestHit;
+    if (extension == ".rahit")
+        return ShaderStage::RayAnyHit;
+    if (extension == ".rint")
+        return ShaderStage::RayIntersection;
     return std::nullopt;
 }
 
 const char* shader_stage_extension(ShaderStage stage) {
     switch (stage) {
-        case ShaderStage::Vertex: return ".vert";
-        case ShaderStage::Fragment: return ".frag";
-        case ShaderStage::Compute: return ".comp";
-        case ShaderStage::RayGeneration: return ".rgen";
-        case ShaderStage::RayMiss: return ".rmiss";
-        case ShaderStage::RayClosestHit: return ".rchit";
-        case ShaderStage::RayAnyHit: return ".rahit";
-        case ShaderStage::RayIntersection: return ".rint";
-        default: return ".glsl";
+        case ShaderStage::Vertex:
+            return ".vert";
+        case ShaderStage::Fragment:
+            return ".frag";
+        case ShaderStage::Compute:
+            return ".comp";
+        case ShaderStage::RayGeneration:
+            return ".rgen";
+        case ShaderStage::RayMiss:
+            return ".rmiss";
+        case ShaderStage::RayClosestHit:
+            return ".rchit";
+        case ShaderStage::RayAnyHit:
+            return ".rahit";
+        case ShaderStage::RayIntersection:
+            return ".rint";
+        default:
+            return ".glsl";
     }
 }
 
 const char* shader_stage_name(ShaderStage stage) {
     switch (stage) {
-        case ShaderStage::Vertex: return "Vertex";
-        case ShaderStage::Fragment: return "Fragment";
-        case ShaderStage::Compute: return "Compute";
-        case ShaderStage::RayGeneration: return "RayGeneration";
-        case ShaderStage::RayMiss: return "RayMiss";
-        case ShaderStage::RayClosestHit: return "RayClosestHit";
-        case ShaderStage::RayAnyHit: return "RayAnyHit";
-        case ShaderStage::RayIntersection: return "RayIntersection";
-        default: return "Unknown";
+        case ShaderStage::Vertex:
+            return "Vertex";
+        case ShaderStage::Fragment:
+            return "Fragment";
+        case ShaderStage::Compute:
+            return "Compute";
+        case ShaderStage::RayGeneration:
+            return "RayGeneration";
+        case ShaderStage::RayMiss:
+            return "RayMiss";
+        case ShaderStage::RayClosestHit:
+            return "RayClosestHit";
+        case ShaderStage::RayAnyHit:
+            return "RayAnyHit";
+        case ShaderStage::RayIntersection:
+            return "RayIntersection";
+        default:
+            return "Unknown";
     }
 }
 
