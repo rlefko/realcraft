@@ -7,6 +7,9 @@ add_subdirectory(platform)
 # Add graphics subdirectory (builds realcraft::graphics library)
 add_subdirectory(graphics)
 
+# Add core subdirectory (builds realcraft::core library)
+add_subdirectory(core)
+
 add_executable(realcraft
     main.cpp
 )
@@ -18,10 +21,10 @@ realcraft_configure_target(realcraft)
 realcraft_link_dependencies(realcraft)
 
 # Link libraries
+# realcraft::core includes platform and graphics as public dependencies
 target_link_libraries(realcraft
     PRIVATE
-        realcraft::platform
-        realcraft::graphics
+        realcraft::core
 )
 
 # Include directories
