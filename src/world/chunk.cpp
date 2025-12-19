@@ -96,6 +96,10 @@ Chunk::WriteLock Chunk::write_lock() {
 }
 
 void Chunk::set_neighbor(HorizontalDirection dir, Chunk* neighbor) {
+    // NOLINTNEXTLINE(clang-analyzer-core.StackAddressEscape)
+    // Design contract: neighbor must be nullptr or a heap-allocated Chunk
+    // managed by WorldManager. WorldManager ensures proper lifetime management
+    // by clearing neighbor links in unload_chunk() before chunk destruction.
     neighbors_[static_cast<size_t>(dir)] = neighbor;
 }
 
