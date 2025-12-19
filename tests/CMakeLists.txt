@@ -8,12 +8,8 @@ add_executable(realcraft_tests
     placeholder_test.cpp
 )
 
-target_link_libraries(realcraft_tests
-    PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        glm::glm
-)
+# Link test dependencies (includes GTest, GLM, Bullet, FastNoise2)
+realcraft_link_test_dependencies(realcraft_tests)
 
 realcraft_configure_target(realcraft_tests)
 

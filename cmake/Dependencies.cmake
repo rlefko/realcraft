@@ -19,14 +19,20 @@ if(REALCRAFT_BUILD_TESTS)
     message(STATUS "Found GTest")
 endif()
 
-# Note: The following dependencies will be enabled in Milestone 0.3
 # Physics (Bullet3)
-# find_package(Bullet CONFIG REQUIRED)
-# message(STATUS "Found Bullet3")
+find_package(Bullet CONFIG REQUIRED)
+message(STATUS "Found Bullet3")
+message(STATUS "  Bullet include dirs: ${BULLET_INCLUDE_DIRS}")
 
-# Noise generation (FastNoise2)
-# find_package(FastNoise2 CONFIG REQUIRED)
-# message(STATUS "Found FastNoise2")
+# Noise generation (FastNoise2) - added as git submodule
+# FastNoise2 is not available in vcpkg, so we include it as a subdirectory
+set(FASTNOISE2_NOISETOOL OFF CACHE BOOL "Build Noise Tool" FORCE)
+set(FASTNOISE2_TESTS OFF CACHE BOOL "Build FastNoise2 tests" FORCE)
+# Pre-configure FastSIMD source for CPM.cmake to use our submodule instead of downloading
+# This fixes Windows CI issues where CPM download can fail due to path length or network issues
+set(CPM_FastSIMD_SOURCE "${CMAKE_SOURCE_DIR}/external/FastSIMD" CACHE PATH "FastSIMD source directory")
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/FastNoise2)
+message(STATUS "Found FastNoise2 (submodule)")
 
 # Platform-specific dependencies
 if(REALCRAFT_PLATFORM_MACOS)
@@ -57,6 +63,14 @@ function(realcraft_link_dependencies target)
             glm::glm
             spdlog::spdlog
             nlohmann_json::nlohmann_json
+            ${BULLET_LIBRARIES}
+            FastNoise
+    )
+
+    # Add Bullet include directories
+    target_include_directories(${target}
+        PRIVATE
+            ${BULLET_INCLUDE_DIRS}
     )
 
     if(REALCRAFT_PLATFORM_MACOS)
@@ -74,4 +88,21 @@ function(realcraft_link_dependencies target)
                 Vulkan::Vulkan
         )
     endif()
+endfunction()
+
+# Helper function to link test dependencies
+function(realcraft_link_test_dependencies target)
+    target_link_libraries(${target}
+        PRIVATE
+            GTest::gtest
+            GTest::gtest_main
+            glm::glm
+            ${BULLET_LIBRARIES}
+            FastNoise
+    )
+
+    target_include_directories(${target}
+        PRIVATE
+            ${BULLET_INCLUDE_DIRS}
+    )
 endfunction()

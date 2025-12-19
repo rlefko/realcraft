@@ -16,7 +16,7 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 0: Project Foundation `[~]`
+## Phase 0: Project Foundation `[x]`
 
 **Goal:** Establish build system, project structure, and development infrastructure
 
@@ -43,15 +43,15 @@ This document outlines the complete development roadmap for RealCraft, organized
 - [x] Create .editorconfig for editor settings
 - [x] Set up pre-commit hooks for formatting
 
-### Milestone 0.3: Third-Party Dependencies `[Medium]`
+### Milestone 0.3: Third-Party Dependencies `[Medium]` `[x]`
 
-- [ ] Evaluate and select physics library (Bullet vs PhysX)
-- [ ] Integrate physics library
-- [ ] Integrate noise library (FastNoise2)
-- [ ] Integrate math library (GLM)
-- [ ] Integrate testing framework (Google Test or Catch2)
-- [ ] Integrate logging library (spdlog or similar)
-- [ ] Document all dependencies and versions
+- [x] Evaluate and select physics library (Bullet vs PhysX)
+- [x] Integrate physics library
+- [x] Integrate noise library (FastNoise2)
+- [x] Integrate math library (GLM)
+- [x] Integrate testing framework (Google Test or Catch2)
+- [x] Integrate logging library (spdlog or similar)
+- [x] Document all dependencies and versions
 
 ---
 
