@@ -39,3 +39,29 @@ target_include_directories(realcraft_platform_tests
 
 realcraft_configure_target(realcraft_platform_tests)
 gtest_discover_tests(realcraft_platform_tests)
+
+# World unit tests
+add_executable(realcraft_world_tests
+    unit/world/types_test.cpp
+    unit/world/block_test.cpp
+    unit/world/chunk_data_test.cpp
+    unit/world/chunk_test.cpp
+    unit/world/serialization_test.cpp
+)
+
+target_link_libraries(realcraft_world_tests
+    PRIVATE
+        realcraft::world
+        realcraft::core
+        GTest::gtest
+        GTest::gtest_main
+        glm::glm
+)
+
+target_include_directories(realcraft_world_tests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+realcraft_configure_target(realcraft_world_tests)
+gtest_discover_tests(realcraft_world_tests)

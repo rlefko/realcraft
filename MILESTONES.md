@@ -119,63 +119,63 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 2: Voxel World Foundation `[ ]`
+## Phase 2: Voxel World Foundation `[x]`
 
 **Goal:** Implement core voxel data structures and chunk system
 
-### Milestone 2.1: Voxel Data Structures `[Medium]`
+### Milestone 2.1: Voxel Data Structures `[Medium]` `[x]`
 
-- [ ] Define block type system
-  - [ ] Block ID registry
-  - [ ] Block property definitions (solid, transparent, liquid)
-  - [ ] Material properties (weight, strength, hardness)
-  - [ ] Block states (orientation, variants)
-- [ ] Implement voxel storage format
-  - [ ] Basic 3D array storage
-  - [ ] Run-length encoding for compression
-  - [ ] Palette-based storage for variety
-- [ ] Create block registry
-  - [ ] Register core block types (stone, dirt, grass, water, etc.)
-  - [ ] Block texture mappings
-  - [ ] Block behavior hooks
+- [x] Define block type system
+  - [x] Block ID registry
+  - [x] Block property definitions (solid, transparent, liquid)
+  - [x] Material properties (weight, strength, hardness)
+  - [x] Block states (orientation, variants)
+- [x] Implement voxel storage format
+  - [x] Basic 3D array storage
+  - [x] Run-length encoding for compression
+  - [x] Palette-based storage for variety
+- [x] Create block registry
+  - [x] Register core block types (stone, dirt, grass, water, etc.)
+  - [x] Block texture mappings
+  - [x] Block behavior hooks
 
-### Milestone 2.2: Chunk System `[Medium]`
+### Milestone 2.2: Chunk System `[Medium]` `[x]`
 
-- [ ] Implement Chunk class
-  - [ ] Define chunk dimensions (e.g., 32x32x256)
-  - [ ] Voxel data storage
-  - [ ] Chunk metadata (biome, modified flag)
-- [ ] Implement coordinate systems
-  - [ ] World coordinates (double precision)
-  - [ ] Chunk coordinates (integer)
-  - [ ] Local voxel coordinates
-  - [ ] World-to-chunk conversion
-- [ ] Implement origin shifting
-  - [ ] Track player position for shift
-  - [ ] Rebase all world objects on shift
-  - [ ] Maintain precision at large distances
-- [ ] Implement chunk neighbors/adjacency
-  - [ ] Neighbor lookup
-  - [ ] Cross-chunk voxel access
+- [x] Implement Chunk class
+  - [x] Define chunk dimensions (e.g., 32x32x256)
+  - [x] Voxel data storage
+  - [x] Chunk metadata (biome, modified flag)
+- [x] Implement coordinate systems
+  - [x] World coordinates (double precision)
+  - [x] Chunk coordinates (integer)
+  - [x] Local voxel coordinates
+  - [x] World-to-chunk conversion
+- [x] Implement origin shifting
+  - [x] Track player position for shift
+  - [x] Rebase all world objects on shift
+  - [x] Maintain precision at large distances
+- [x] Implement chunk neighbors/adjacency
+  - [x] Neighbor lookup
+  - [x] Cross-chunk voxel access
 
-### Milestone 2.3: World Manager `[Medium]`
+### Milestone 2.3: World Manager `[Medium]` `[x]`
 
-- [ ] Implement chunk lifecycle management
-  - [ ] Chunk creation
-  - [ ] Chunk loading from disk
-  - [ ] Chunk unloading and saving
-- [ ] Implement active chunk tracking
-  - [ ] Player-centered loading radius
-  - [ ] Priority queue for loading order
-  - [ ] View distance settings
-- [ ] Implement thread-safe chunk access
-  - [ ] Read/write locks per chunk
-  - [ ] Atomic chunk state transitions
-  - [ ] Safe concurrent modification
-- [ ] Implement chunk modification events
-  - [ ] Block change notifications
-  - [ ] Dirty chunk tracking
-  - [ ] Observer pattern for subsystems
+- [x] Implement chunk lifecycle management
+  - [x] Chunk creation
+  - [x] Chunk loading from disk
+  - [x] Chunk unloading and saving
+- [x] Implement active chunk tracking
+  - [x] Player-centered loading radius
+  - [x] Priority queue for loading order
+  - [x] View distance settings
+- [x] Implement thread-safe chunk access
+  - [x] Read/write locks per chunk
+  - [x] Atomic chunk state transitions
+  - [x] Safe concurrent modification
+- [x] Implement chunk modification events
+  - [x] Block change notifications
+  - [x] Dirty chunk tracking
+  - [x] Observer pattern for subsystems
 
 ---
 
