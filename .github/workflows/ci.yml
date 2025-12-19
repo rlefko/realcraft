@@ -182,7 +182,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
