@@ -1,10 +1,10 @@
 // RealCraft Platform Abstraction Layer
 // input_mapper.cpp - Input action mapping implementation
 
-#include <realcraft/platform/input_action.hpp>
-
 #include <nlohmann/json.hpp>
+
 #include <algorithm>
+#include <realcraft/platform/input_action.hpp>
 #include <unordered_map>
 
 namespace realcraft::platform {
@@ -179,8 +179,7 @@ bool InputMapper::is_action_just_released(const std::string& action) const {
     return false;
 }
 
-float InputMapper::get_axis(const std::string& positive_action,
-                            const std::string& negative_action) const {
+float InputMapper::get_axis(const std::string& positive_action, const std::string& negative_action) const {
     float value = 0.0f;
     if (is_action_pressed(positive_action)) {
         value += 1.0f;
@@ -310,7 +309,7 @@ void InputMapper::load_defaults() {
     bind_action("sprint", KeyCode::LeftShift);
 
     // Actions
-    bind_action("primary_action", MouseButton::Left);    // Break block
+    bind_action("primary_action", MouseButton::Left);     // Break block
     bind_action("secondary_action", MouseButton::Right);  // Place block
 
     // Hotbar

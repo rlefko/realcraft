@@ -55,7 +55,7 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 1: Core Engine & Platform Abstraction `[~]`
+## Phase 1: Core Engine & Platform Abstraction `[x]`
 
 **Goal:** Create foundational engine layer with window management, input, and graphics API abstraction
 
@@ -99,23 +99,23 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Shader reflection for uniforms
   - [ ] Hot-reload support for development (deferred)
 
-### Milestone 1.3: Engine Core `[Medium]`
+### Milestone 1.3: Engine Core `[Medium]` `[x]`
 
-- [ ] Implement main game loop
-  - [ ] Fixed timestep for physics
-  - [ ] Variable timestep for rendering
-  - [ ] Frame limiting options
-- [ ] Implement configuration/settings system
-  - [ ] Config file parsing (JSON/TOML)
-  - [ ] Runtime settings modification
-  - [ ] Settings persistence
-- [ ] Implement logging system
-  - [ ] Multiple log levels
-  - [ ] File and console output
-  - [ ] Performance-friendly implementation
-- [ ] Implement memory management
-  - [ ] Custom allocators for subsystems
-  - [ ] Memory tracking in debug builds
+- [x] Implement main game loop
+  - [x] Fixed timestep for physics
+  - [x] Variable timestep for rendering
+  - [x] Frame limiting options
+- [x] Implement configuration/settings system
+  - [x] Config file parsing (JSON/TOML)
+  - [x] Runtime settings modification
+  - [x] Settings persistence
+- [x] Implement logging system
+  - [x] Multiple log levels
+  - [x] File and console output
+  - [x] Performance-friendly implementation
+- [x] Implement memory management
+  - [x] Custom allocators for subsystems
+  - [x] Memory tracking in debug builds
 
 ---
 

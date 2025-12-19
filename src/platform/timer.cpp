@@ -1,11 +1,11 @@
 // RealCraft Platform Abstraction Layer
 // timer.cpp - Timer implementation
 
-#include <realcraft/platform/timer.hpp>
-
 #include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <numeric>
+#include <realcraft/platform/timer.hpp>
 #include <thread>
 
 namespace realcraft::platform {
@@ -170,14 +170,12 @@ void FrameTimer::wait_for_target_frame_time() {
 
     if (remaining > 0.0) {
         // Sleep for most of the remaining time, then spin-wait for precision
-        if (remaining > 0.002) {  // 2ms threshold for sleep
-            std::this_thread::sleep_for(
-                std::chrono::duration<double>(remaining - 0.001));  // Leave 1ms for spin
+        if (remaining > 0.002) {                                                            // 2ms threshold for sleep
+            std::this_thread::sleep_for(std::chrono::duration<double>(remaining - 0.001));  // Leave 1ms for spin
         }
 
         // Spin-wait for remaining time
-        while (std::chrono::duration<double>(Timer::Clock::now() - frame_start_).count() <
-               target_frame_time_) {
+        while (std::chrono::duration<double>(Timer::Clock::now() - frame_start_).count() < target_frame_time_) {
             // Busy wait
         }
     }

@@ -6,8 +6,9 @@
 #include "input.hpp"
 #include "platform.hpp"
 
-#include <functional>
 #include <glm/vec2.hpp>
+
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>

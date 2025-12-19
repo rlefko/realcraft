@@ -1,27 +1,27 @@
 // RealCraft Platform Abstraction Layer
 // file_io.cpp - Cross-platform file system implementation
 
-#include <realcraft/platform/file_io.hpp>
-
 #include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <fstream>
 #include <future>
 #include <mutex>
+#include <realcraft/platform/file_io.hpp>
 #include <unordered_map>
 
 #if defined(REALCRAFT_PLATFORM_MACOS)
-#include <mach-o/dyld.h>
-#include <pwd.h>
-#include <sys/types.h>
-#include <unistd.h>
+#    include <mach-o/dyld.h>
+#    include <pwd.h>
+#    include <sys/types.h>
+#    include <unistd.h>
 #elif defined(REALCRAFT_PLATFORM_WINDOWS)
-#include <shlobj.h>
-#include <windows.h>
+#    include <shlobj.h>
+#    include <windows.h>
 #elif defined(REALCRAFT_PLATFORM_LINUX)
-#include <pwd.h>
-#include <sys/types.h>
-#include <unistd.h>
+#    include <pwd.h>
+#    include <sys/types.h>
+#    include <unistd.h>
 #endif
 
 namespace realcraft::platform {
@@ -172,8 +172,7 @@ std::optional<std::string> FileSystem::read_text(const fs::path& path) {
             return std::nullopt;
         }
 
-        std::string content((std::istreambuf_iterator<char>(file)),
-                            std::istreambuf_iterator<char>());
+        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
         if (!file && !file.eof()) {
             spdlog::warn("Error reading file: {}", path.string());
@@ -200,8 +199,7 @@ bool FileSystem::write_binary(const fs::path& path, std::span<const uint8_t> dat
             return false;
         }
 
-        file.write(reinterpret_cast<const char*>(data.data()),
-                   static_cast<std::streamsize>(data.size()));
+        file.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
 
         if (!file) {
             spdlog::warn("Error writing file: {}", path.string());
@@ -327,9 +325,7 @@ std::vector<fs::path> FileSystem::list_directory(const fs::path& path, bool recu
     return result;
 }
 
-std::vector<fs::path> FileSystem::list_files(const fs::path& path,
-                                             std::string_view extension,
-                                             bool recursive) {
+std::vector<fs::path> FileSystem::list_files(const fs::path& path, std::string_view extension, bool recursive) {
     std::vector<fs::path> result;
     try {
         if (!fs::exists(path) || !fs::is_directory(path)) {
@@ -483,8 +479,7 @@ size_t ResourceCache::entry_count() const {
     return impl_->entries.size();
 }
 
-std::optional<std::span<const uint8_t>> ResourceCache::load_cached(const std::string& key,
-                                                                   const fs::path& source_path,
+std::optional<std::span<const uint8_t>> ResourceCache::load_cached(const std::string& key, const fs::path& source_path,
                                                                    bool check_modified) {
     // Check if already cached
     {

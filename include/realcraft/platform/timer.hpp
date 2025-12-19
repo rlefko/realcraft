@@ -55,9 +55,9 @@ public:
     void end_frame();
 
     // Delta time (time since last frame)
-    [[nodiscard]] double get_delta_time() const;       // In seconds
-    [[nodiscard]] double get_delta_time_ms() const;    // In milliseconds
-    [[nodiscard]] float get_delta_time_f() const;      // In seconds (float)
+    [[nodiscard]] double get_delta_time() const;     // In seconds
+    [[nodiscard]] double get_delta_time_ms() const;  // In milliseconds
+    [[nodiscard]] float get_delta_time_f() const;    // In seconds (float)
 
     // Unscaled delta time (ignores time scale)
     [[nodiscard]] double get_unscaled_delta_time() const;
@@ -121,7 +121,6 @@ private:
 };
 
 // Macro for easy profiling
-#define REALCRAFT_SCOPED_TIMER(name) \
-    ::realcraft::platform::ScopedTimer scoped_timer_##__LINE__(name)
+#define REALCRAFT_SCOPED_TIMER(name) ::realcraft::platform::ScopedTimer scoped_timer_##__LINE__(name)
 
 }  // namespace realcraft::platform

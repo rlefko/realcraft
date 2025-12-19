@@ -1,10 +1,9 @@
 // RealCraft Graphics Abstraction Layer
 // device.cpp - Graphics device factory function
 
-#include <realcraft/graphics/device.hpp>
-
 #include <spdlog/spdlog.h>
 
+#include <realcraft/graphics/device.hpp>
 #include <stdexcept>
 
 // Platform-specific device declarations

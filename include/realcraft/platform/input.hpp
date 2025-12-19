@@ -6,28 +6,18 @@
 #include "key_codes.hpp"
 #include "platform.hpp"
 
-#include <functional>
 #include <glm/vec2.hpp>
+
+#include <functional>
 #include <memory>
 
 namespace realcraft::platform {
 
 // Mouse button identifiers
-enum class MouseButton : uint8_t {
-    Left = 0,
-    Right = 1,
-    Middle = 2,
-    Button4 = 3,
-    Button5 = 4,
-    Count = 5
-};
+enum class MouseButton : uint8_t { Left = 0, Right = 1, Middle = 2, Button4 = 3, Button5 = 4, Count = 5 };
 
 // Key state
-enum class KeyState : uint8_t {
-    Released = 0,
-    Pressed = 1,
-    Repeat = 2
-};
+enum class KeyState : uint8_t { Released = 0, Pressed = 1, Repeat = 2 };
 
 // Input handling class - typically owned by a Window
 class Input {

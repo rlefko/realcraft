@@ -55,8 +55,7 @@ public:
     static bool remove(const fs::path& path);
     static bool remove_all(const fs::path& path);
     static std::vector<fs::path> list_directory(const fs::path& path, bool recursive = false);
-    static std::vector<fs::path> list_files(const fs::path& path,
-                                            std::string_view extension = "",
+    static std::vector<fs::path> list_files(const fs::path& path, std::string_view extension = "",
                                             bool recursive = false);
 
     // File info
@@ -101,8 +100,7 @@ public:
     [[nodiscard]] size_t entry_count() const;
 
     // Load with automatic caching
-    std::optional<std::span<const uint8_t>> load_cached(const std::string& key,
-                                                        const fs::path& source_path,
+    std::optional<std::span<const uint8_t>> load_cached(const std::string& key, const fs::path& source_path,
                                                         bool check_modified = true);
 
 private:

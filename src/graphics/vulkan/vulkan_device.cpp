@@ -1,10 +1,9 @@
 // RealCraft Graphics Abstraction Layer
 // vulkan_device.cpp - Vulkan graphics device stub (not yet implemented)
 
-#include <realcraft/graphics/device.hpp>
-
 #include <spdlog/spdlog.h>
 
+#include <realcraft/graphics/device.hpp>
 #include <stdexcept>
 
 #if defined(REALCRAFT_PLATFORM_LINUX) || defined(REALCRAFT_PLATFORM_WINDOWS)
@@ -40,8 +39,7 @@ public:
         throw std::runtime_error("VulkanDevice::create_pipeline not implemented");
     }
 
-    std::unique_ptr<ComputePipeline> create_compute_pipeline(
-        const ComputePipelineDesc& /*desc*/) override {
+    std::unique_ptr<ComputePipeline> create_compute_pipeline(const ComputePipelineDesc& /*desc*/) override {
         throw std::runtime_error("VulkanDevice::create_compute_pipeline not implemented");
     }
 
@@ -61,25 +59,17 @@ public:
         throw std::runtime_error("VulkanDevice::submit not implemented");
     }
 
-    void wait_idle() override {
-        throw std::runtime_error("VulkanDevice::wait_idle not implemented");
-    }
+    void wait_idle() override { throw std::runtime_error("VulkanDevice::wait_idle not implemented"); }
 
-    SwapChain* get_swap_chain() override {
-        throw std::runtime_error("VulkanDevice::get_swap_chain not implemented");
-    }
+    SwapChain* get_swap_chain() override { throw std::runtime_error("VulkanDevice::get_swap_chain not implemented"); }
 
     void resize_swap_chain(uint32_t /*width*/, uint32_t /*height*/) override {
         throw std::runtime_error("VulkanDevice::resize_swap_chain not implemented");
     }
 
-    void begin_frame() override {
-        throw std::runtime_error("VulkanDevice::begin_frame not implemented");
-    }
+    void begin_frame() override { throw std::runtime_error("VulkanDevice::begin_frame not implemented"); }
 
-    void end_frame() override {
-        throw std::runtime_error("VulkanDevice::end_frame not implemented");
-    }
+    void end_frame() override { throw std::runtime_error("VulkanDevice::end_frame not implemented"); }
 
     DeviceCapabilities get_capabilities() const override {
         DeviceCapabilities caps;
