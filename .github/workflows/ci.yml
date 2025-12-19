@@ -73,7 +73,7 @@ jobs:
             libvulkan-dev
 
       - name: Export GitHub Actions cache environment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
@@ -120,7 +120,7 @@ jobs:
           submodules: recursive
 
       - name: Export GitHub Actions cache environment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
@@ -172,7 +172,7 @@ jobs:
           submodules: recursive
 
       - name: Export GitHub Actions cache environment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
@@ -239,7 +239,7 @@ jobs:
             libvulkan-dev
 
       - name: Export GitHub Actions cache environment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
