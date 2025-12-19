@@ -3,6 +3,11 @@
 
 #include <realcraft/platform/window.hpp>
 
+// Prevent Windows.h min/max macros from conflicting with std::min/std::max
+#if defined(REALCRAFT_PLATFORM_WINDOWS)
+#define NOMINMAX
+#endif
+
 #include <GLFW/glfw3.h>
 
 // Native window handles require platform-specific headers
