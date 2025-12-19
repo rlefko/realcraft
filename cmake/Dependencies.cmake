@@ -28,6 +28,9 @@ message(STATUS "  Bullet include dirs: ${BULLET_INCLUDE_DIRS}")
 # FastNoise2 is not available in vcpkg, so we include it as a subdirectory
 set(FASTNOISE2_NOISETOOL OFF CACHE BOOL "Build Noise Tool" FORCE)
 set(FASTNOISE2_TESTS OFF CACHE BOOL "Build FastNoise2 tests" FORCE)
+# Pre-configure FastSIMD source for CPM.cmake to use our submodule instead of downloading
+# This fixes Windows CI issues where CPM download can fail due to path length or network issues
+set(CPM_FastSIMD_SOURCE "${CMAKE_SOURCE_DIR}/external/FastSIMD" CACHE PATH "FastSIMD source directory")
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/FastNoise2)
 message(STATUS "Found FastNoise2 (submodule)")
 
