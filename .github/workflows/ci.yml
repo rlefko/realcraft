@@ -48,6 +48,14 @@ jobs:
         with:
           languages: cpp
           queries: +security-and-quality
+          config: |
+            paths:
+              - src
+              - include
+            paths-ignore:
+              - '**/vcpkg_installed/**'
+              - '**/build/**'
+              - '**/external/**'
 
       - name: Install Dependencies
         run: |
