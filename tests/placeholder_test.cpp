@@ -128,7 +128,7 @@ TEST(BulletPhysicsTest, RigidBodyCreation) {
 TEST(FastNoise2Test, SimplexNoiseCreation) {
     // Test that we can create a simplex noise generator
     auto fn_simplex = FastNoise::New<FastNoise::Simplex>();
-    EXPECT_NE(fn_simplex, nullptr);
+    EXPECT_TRUE(fn_simplex);
 }
 
 TEST(FastNoise2Test, NoiseGeneration) {
