@@ -3,15 +3,14 @@
 
 #pragma once
 
-#include <realcraft/core/config.hpp>
-#include <realcraft/core/game_loop.hpp>
-#include <realcraft/core/logger.hpp>
-#include <realcraft/platform/window.hpp>
-#include <realcraft/graphics/device.hpp>
-
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <realcraft/core/config.hpp>
+#include <realcraft/core/game_loop.hpp>
+#include <realcraft/core/logger.hpp>
+#include <realcraft/graphics/device.hpp>
+#include <realcraft/platform/window.hpp>
 #include <string>
 
 namespace realcraft::core {

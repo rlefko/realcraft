@@ -1,12 +1,12 @@
 // RealCraft Platform Abstraction Layer
 // input.cpp - GLFW-based input implementation
 
-#include <realcraft/platform/input.hpp>
+#include <spdlog/spdlog.h>
 
 #include <GLFW/glfw3.h>
-#include <spdlog/spdlog.h>
 #include <array>
 #include <cstring>
+#include <realcraft/platform/input.hpp>
 
 namespace realcraft::platform {
 
@@ -73,8 +73,7 @@ bool Input::is_key_just_pressed(KeyCode key) const {
     if (index >= impl_->key_states.size()) {
         return false;
     }
-    return impl_->key_states[index] == KeyState::Pressed &&
-           impl_->prev_key_states[index] == KeyState::Released;
+    return impl_->key_states[index] == KeyState::Pressed && impl_->prev_key_states[index] == KeyState::Released;
 }
 
 bool Input::is_key_just_released(KeyCode key) const {
@@ -83,8 +82,7 @@ bool Input::is_key_just_released(KeyCode key) const {
         return false;
     }
     return impl_->key_states[index] == KeyState::Released &&
-           (impl_->prev_key_states[index] == KeyState::Pressed ||
-            impl_->prev_key_states[index] == KeyState::Repeat);
+           (impl_->prev_key_states[index] == KeyState::Pressed || impl_->prev_key_states[index] == KeyState::Repeat);
 }
 
 glm::dvec2 Input::get_mouse_position() const {
@@ -149,8 +147,7 @@ void Input::set_cursor_visible(bool visible) {
     impl_->cursor_visible = visible;
 
     if (impl_->window != nullptr && !impl_->mouse_captured) {
-        glfwSetInputMode(impl_->window, GLFW_CURSOR,
-                         visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
+        glfwSetInputMode(impl_->window, GLFW_CURSOR, visible ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_HIDDEN);
     }
 }
 

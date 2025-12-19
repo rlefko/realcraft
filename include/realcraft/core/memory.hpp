@@ -58,7 +58,7 @@ public:
     [[nodiscard]] void* allocate(size_t size, size_t alignment = alignof(std::max_align_t));
 
     // Typed allocation with construction
-    template<typename T, typename... Args>
+    template <typename T, typename... Args>
     [[nodiscard]] T* create(Args&&... args) {
         void* ptr = allocate(sizeof(T), alignof(T));
         if (ptr) {
@@ -68,7 +68,7 @@ public:
     }
 
     // Allocate array (no construction)
-    template<typename T>
+    template <typename T>
     [[nodiscard]] T* allocate_array(size_t count) {
         void* ptr = allocate(sizeof(T) * count, alignof(T));
         return static_cast<T*>(ptr);
@@ -97,11 +97,9 @@ void reset_frame_allocator();  // Call at start of each frame
 
 // Debug allocation macros (track allocations in debug builds)
 #ifdef REALCRAFT_DEBUG
-    #define REALCRAFT_TRACK_ALLOC(ptr, size, tag) \
-        ::realcraft::core::MemoryTracker::track_allocation(ptr, size, tag)
-    #define REALCRAFT_TRACK_FREE(ptr) \
-        ::realcraft::core::MemoryTracker::track_deallocation(ptr)
+#    define REALCRAFT_TRACK_ALLOC(ptr, size, tag) ::realcraft::core::MemoryTracker::track_allocation(ptr, size, tag)
+#    define REALCRAFT_TRACK_FREE(ptr) ::realcraft::core::MemoryTracker::track_deallocation(ptr)
 #else
-    #define REALCRAFT_TRACK_ALLOC(ptr, size, tag) ((void)0)
-    #define REALCRAFT_TRACK_FREE(ptr) ((void)0)
+#    define REALCRAFT_TRACK_ALLOC(ptr, size, tag) ((void)0)
+#    define REALCRAFT_TRACK_FREE(ptr) ((void)0)
 #endif

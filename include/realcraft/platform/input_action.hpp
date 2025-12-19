@@ -7,6 +7,7 @@
 #include "key_codes.hpp"
 
 #include <nlohmann/json_fwd.hpp>
+
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -53,8 +54,7 @@ public:
     [[nodiscard]] bool is_action_just_released(const std::string& action) const;
 
     // Axis-like queries (returns 1.0, -1.0, or 0.0)
-    [[nodiscard]] float get_axis(const std::string& positive_action,
-                                 const std::string& negative_action) const;
+    [[nodiscard]] float get_axis(const std::string& positive_action, const std::string& negative_action) const;
 
     // Get all bindings for an action
     [[nodiscard]] std::vector<Binding> get_bindings(const std::string& action) const;

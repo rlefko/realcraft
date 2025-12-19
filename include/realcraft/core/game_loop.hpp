@@ -16,9 +16,9 @@ using RenderCallback = std::function<void(double interpolation)>;
 
 // Game loop configuration
 struct GameLoopConfig {
-    double fixed_timestep = 1.0 / 60.0;   // 60 Hz physics
-    double max_frame_time = 0.25;          // Prevent spiral of death
-    double target_fps = 0.0;               // 0 = unlimited (vsync controls)
+    double fixed_timestep = 1.0 / 60.0;  // 60 Hz physics
+    double max_frame_time = 0.25;        // Prevent spiral of death
+    double target_fps = 0.0;             // 0 = unlimited (vsync controls)
     bool vsync = true;
 };
 

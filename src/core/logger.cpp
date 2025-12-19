@@ -1,13 +1,12 @@
 // RealCraft Engine Core
 // logger.cpp - Logging system implementation
 
-#include <realcraft/core/logger.hpp>
-#include <realcraft/platform/file_io.hpp>
-
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <mutex>
+#include <realcraft/core/logger.hpp>
+#include <realcraft/platform/file_io.hpp>
 #include <unordered_map>
 
 namespace realcraft::core {
@@ -31,14 +30,22 @@ LoggerState& get_state() {
 
 spdlog::level::level_enum to_spdlog_level(LogLevel level) {
     switch (level) {
-        case LogLevel::Trace:    return spdlog::level::trace;
-        case LogLevel::Debug:    return spdlog::level::debug;
-        case LogLevel::Info:     return spdlog::level::info;
-        case LogLevel::Warn:     return spdlog::level::warn;
-        case LogLevel::Error:    return spdlog::level::err;
-        case LogLevel::Critical: return spdlog::level::critical;
-        case LogLevel::Off:      return spdlog::level::off;
-        default:                 return spdlog::level::info;
+        case LogLevel::Trace:
+            return spdlog::level::trace;
+        case LogLevel::Debug:
+            return spdlog::level::debug;
+        case LogLevel::Info:
+            return spdlog::level::info;
+        case LogLevel::Warn:
+            return spdlog::level::warn;
+        case LogLevel::Error:
+            return spdlog::level::err;
+        case LogLevel::Critical:
+            return spdlog::level::critical;
+        case LogLevel::Off:
+            return spdlog::level::off;
+        default:
+            return spdlog::level::info;
     }
 }
 
@@ -78,11 +85,8 @@ void Logger::initialize(const LoggerConfig& config) {
         }
 
         auto log_path = log_dir / config.log_filename;
-        auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-            log_path.string(),
-            config.max_file_size,
-            config.max_files
-        );
+        auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(log_path.string(), config.max_file_size,
+                                                                                config.max_files);
         file_sink->set_level(to_spdlog_level(config.file_level));
         file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%n] %v");
 

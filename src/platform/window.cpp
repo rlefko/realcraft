@@ -5,22 +5,22 @@
 
 // Prevent Windows.h min/max macros from conflicting with std::min/std::max
 #if defined(REALCRAFT_PLATFORM_WINDOWS)
-#define NOMINMAX
+#    define NOMINMAX
 #endif
 
 #include <GLFW/glfw3.h>
 
 // Native window handles require platform-specific headers
 #if defined(REALCRAFT_PLATFORM_MACOS)
-#define GLFW_EXPOSE_NATIVE_COCOA
+#    define GLFW_EXPOSE_NATIVE_COCOA
 #elif defined(REALCRAFT_PLATFORM_WINDOWS)
-#define GLFW_EXPOSE_NATIVE_WIN32
+#    define GLFW_EXPOSE_NATIVE_WIN32
 #elif defined(REALCRAFT_PLATFORM_LINUX)
-#define GLFW_EXPOSE_NATIVE_X11
+#    define GLFW_EXPOSE_NATIVE_X11
 #endif
-#include <GLFW/glfw3native.h>
-
 #include <spdlog/spdlog.h>
+
+#include <GLFW/glfw3native.h>
 
 #if defined(REALCRAFT_PLATFORM_MACOS)
 // Forward declaration for macOS-specific Metal layer setup
@@ -45,9 +45,8 @@ bool initialize() {
     }
 
     // Set error callback
-    glfwSetErrorCallback([](int error, const char* description) {
-        spdlog::error("GLFW Error {}: {}", error, description);
-    });
+    glfwSetErrorCallback(
+        [](int error, const char* description) { spdlog::error("GLFW Error {}: {}", error, description); });
 
     g_platform_initialized = true;
     spdlog::info("Platform layer initialized (GLFW {})", glfwGetVersionString());
@@ -167,8 +166,7 @@ bool Window::initialize(const Config& config) {
     glfwSetWindowUserPointer(impl_->window, this);
 
     // Set up callbacks
-    glfwSetKeyCallback(impl_->window, [](GLFWwindow* win, int key, int scancode, int action,
-                                         int mods) {
+    glfwSetKeyCallback(impl_->window, [](GLFWwindow* win, int key, int scancode, int action, int mods) {
         auto* window = static_cast<Window*>(glfwGetWindowUserPointer(win));
         window->impl_->input.on_key_event(key, scancode, action, mods);
     });
@@ -183,8 +181,7 @@ bool Window::initialize(const Config& config) {
         window->impl_->input.on_mouse_move_event(x, y);
     });
 
-    glfwSetMouseButtonCallback(impl_->window, [](GLFWwindow* win, int button, int action,
-                                                  int mods) {
+    glfwSetMouseButtonCallback(impl_->window, [](GLFWwindow* win, int button, int action, int mods) {
         auto* window = static_cast<Window*>(glfwGetWindowUserPointer(win));
         window->impl_->input.on_mouse_button_event(button, action, mods);
     });
@@ -204,8 +201,7 @@ bool Window::initialize(const Config& config) {
     glfwSetFramebufferSizeCallback(impl_->window, [](GLFWwindow* win, int w, int h) {
         auto* window = static_cast<Window*>(glfwGetWindowUserPointer(win));
         if (window->impl_->framebuffer_resize_callback) {
-            window->impl_->framebuffer_resize_callback(static_cast<uint32_t>(w),
-                                                       static_cast<uint32_t>(h));
+            window->impl_->framebuffer_resize_callback(static_cast<uint32_t>(w), static_cast<uint32_t>(h));
         }
     });
 
@@ -232,8 +228,7 @@ bool Window::initialize(const Config& config) {
 #endif
 
     ++g_window_count;
-    spdlog::info("Window created: {}x{} ({})", width, height,
-                 config.fullscreen ? "fullscreen" : "windowed");
+    spdlog::info("Window created: {}x{} ({})", width, height, config.fullscreen ? "fullscreen" : "windowed");
 
     return true;
 }
@@ -348,13 +343,12 @@ void Window::set_fullscreen(bool fullscreen, int32_t monitor_index) {
         }
 
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-        glfwSetWindowMonitor(impl_->window, monitor, 0, 0, mode->width, mode->height,
-                             mode->refreshRate);
+        glfwSetWindowMonitor(impl_->window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
         impl_->fullscreen_monitor = monitor;
     } else {
         // Restore windowed position
-        glfwSetWindowMonitor(impl_->window, nullptr, impl_->windowed_x, impl_->windowed_y,
-                             impl_->windowed_width, impl_->windowed_height, 0);
+        glfwSetWindowMonitor(impl_->window, nullptr, impl_->windowed_x, impl_->windowed_y, impl_->windowed_width,
+                             impl_->windowed_height, 0);
         impl_->fullscreen_monitor = nullptr;
     }
 

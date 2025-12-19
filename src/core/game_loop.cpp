@@ -1,12 +1,11 @@
 // RealCraft Engine Core
 // game_loop.cpp - Fixed and variable timestep game loop implementation
 
+#include <algorithm>
 #include <realcraft/core/game_loop.hpp>
 #include <realcraft/core/logger.hpp>
 #include <realcraft/core/memory.hpp>
 #include <realcraft/platform/timer.hpp>
-
-#include <algorithm>
 
 namespace realcraft::core {
 
@@ -26,8 +25,7 @@ struct GameLoop::Impl {
     bool exit_requested = false;
 };
 
-GameLoop::GameLoop()
-    : impl_(std::make_unique<Impl>()) {
+GameLoop::GameLoop() : impl_(std::make_unique<Impl>()) {
     // Configure frame timer with default target FPS
     impl_->frame_timer.set_frame_limiting_enabled(false);
 }
@@ -44,10 +42,9 @@ void GameLoop::configure(const GameLoopConfig& config) {
         impl_->frame_timer.set_frame_limiting_enabled(false);
     }
 
-    REALCRAFT_LOG_INFO(log_category::ENGINE,
-        "Game loop configured: fixed_dt={:.4f}s, max_frame={:.4f}s, target_fps={}",
-        config.fixed_timestep, config.max_frame_time,
-        config.target_fps > 0 ? std::to_string(static_cast<int>(config.target_fps)) : "unlimited");
+    REALCRAFT_LOG_INFO(log_category::ENGINE, "Game loop configured: fixed_dt={:.4f}s, max_frame={:.4f}s, target_fps={}",
+                       config.fixed_timestep, config.max_frame_time,
+                       config.target_fps > 0 ? std::to_string(static_cast<int>(config.target_fps)) : "unlimited");
 }
 
 const GameLoopConfig& GameLoop::get_config() const {

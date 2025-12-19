@@ -1,12 +1,11 @@
 // RealCraft Engine Core
 // memory.cpp - Memory tracking and allocators implementation
 
-#include <realcraft/core/memory.hpp>
-#include <realcraft/core/logger.hpp>
-
 #include <algorithm>
 #include <cstdlib>
 #include <mutex>
+#include <realcraft/core/logger.hpp>
+#include <realcraft/core/memory.hpp>
 #include <unordered_map>
 
 namespace realcraft::core {
@@ -96,14 +95,13 @@ void MemoryTracker::reset_stats() {
 void MemoryTracker::log_stats() {
     auto stats = get_stats();
 
-    REALCRAFT_LOG_INFO(log_category::MEMORY,
-        "Memory Stats - Active: {} allocs ({} bytes), Peak: {} allocs ({} bytes)",
-        stats.active_allocations, stats.active_bytes,
-        stats.peak_allocations, stats.peak_bytes);
+    REALCRAFT_LOG_INFO(log_category::MEMORY, "Memory Stats - Active: {} allocs ({} bytes), Peak: {} allocs ({} bytes)",
+                       stats.active_allocations, stats.active_bytes, stats.peak_allocations, stats.peak_bytes);
 }
 
 void MemoryTracker::track_allocation(void* ptr, size_t size, const char* tag) {
-    if (!ptr) return;
+    if (!ptr)
+        return;
 
     auto& state = get_tracker_state();
     std::lock_guard lock(state.mutex);
@@ -115,8 +113,7 @@ void MemoryTracker::track_allocation(void* ptr, size_t size, const char* tag) {
     state.stats.total_allocations++;
     state.stats.active_allocations++;
     state.stats.active_bytes += size;
-    state.stats.peak_allocations = std::max(state.stats.peak_allocations,
-                                            state.stats.active_allocations);
+    state.stats.peak_allocations = std::max(state.stats.peak_allocations, state.stats.active_allocations);
     state.stats.peak_bytes = std::max(state.stats.peak_bytes, state.stats.active_bytes);
 
 #ifdef REALCRAFT_DEBUG
@@ -127,7 +124,8 @@ void MemoryTracker::track_allocation(void* ptr, size_t size, const char* tag) {
 }
 
 void MemoryTracker::track_deallocation(void* ptr) {
-    if (!ptr) return;
+    if (!ptr)
+        return;
 
     auto& state = get_tracker_state();
     std::lock_guard lock(state.mutex);
@@ -162,19 +160,16 @@ void MemoryTracker::report_leaks() {
         return;
     }
 
-    REALCRAFT_LOG_WARN(log_category::MEMORY,
-        "Memory leaks detected: {} allocations ({} bytes)",
-        state.allocations.size(), state.stats.active_bytes);
+    REALCRAFT_LOG_WARN(log_category::MEMORY, "Memory leaks detected: {} allocations ({} bytes)",
+                       state.allocations.size(), state.stats.active_bytes);
 
     size_t count = 0;
     for (const auto& [ptr, info] : state.allocations) {
-        REALCRAFT_LOG_WARN(log_category::MEMORY,
-            "  Leak: {} bytes at {} (tag: {})",
-            info.size, ptr, info.tag ? info.tag : "none");
+        REALCRAFT_LOG_WARN(log_category::MEMORY, "  Leak: {} bytes at {} (tag: {})", info.size, ptr,
+                           info.tag ? info.tag : "none");
 
         if (++count >= 10) {
-            REALCRAFT_LOG_WARN(log_category::MEMORY,
-                "  ... and {} more leaks", state.allocations.size() - 10);
+            REALCRAFT_LOG_WARN(log_category::MEMORY, "  ... and {} more leaks", state.allocations.size() - 10);
             break;
         }
     }
@@ -188,15 +183,13 @@ struct LinearAllocator::Impl {
     size_t offset = 0;
 };
 
-LinearAllocator::LinearAllocator(size_t capacity)
-    : impl_(std::make_unique<Impl>()) {
+LinearAllocator::LinearAllocator(size_t capacity) : impl_(std::make_unique<Impl>()) {
     impl_->buffer = static_cast<uint8_t*>(std::malloc(capacity));
     impl_->capacity = capacity;
     impl_->offset = 0;
 
     if (!impl_->buffer) {
-        REALCRAFT_LOG_ERROR(log_category::MEMORY,
-            "Failed to allocate {} bytes for LinearAllocator", capacity);
+        REALCRAFT_LOG_ERROR(log_category::MEMORY, "Failed to allocate {} bytes for LinearAllocator", capacity);
     }
 }
 
@@ -218,8 +211,7 @@ void* LinearAllocator::allocate(size_t size, size_t alignment) {
 
     if (impl_->offset + padding + size > impl_->capacity) {
         REALCRAFT_LOG_ERROR(log_category::MEMORY,
-            "LinearAllocator out of memory: requested {} bytes, remaining {} bytes",
-            size, remaining());
+                            "LinearAllocator out of memory: requested {} bytes, remaining {} bytes", size, remaining());
         return nullptr;
     }
 
@@ -259,14 +251,12 @@ void initialize_frame_allocator(size_t capacity) {
     std::lock_guard lock(g_frame_allocator_mutex);
 
     if (g_frame_allocator) {
-        REALCRAFT_LOG_WARN(log_category::MEMORY,
-            "Frame allocator already initialized, ignoring new capacity");
+        REALCRAFT_LOG_WARN(log_category::MEMORY, "Frame allocator already initialized, ignoring new capacity");
         return;
     }
 
     g_frame_allocator = std::make_unique<LinearAllocator>(capacity);
-    REALCRAFT_LOG_INFO(log_category::MEMORY,
-        "Frame allocator initialized with {} bytes", capacity);
+    REALCRAFT_LOG_INFO(log_category::MEMORY, "Frame allocator initialized with {} bytes", capacity);
 }
 
 void shutdown_frame_allocator() {

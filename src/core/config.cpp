@@ -1,11 +1,11 @@
 // RealCraft Engine Core
 // config.cpp - JSON-based configuration system implementation
 
+#include <nlohmann/json.hpp>
+
 #include <realcraft/core/config.hpp>
 #include <realcraft/core/logger.hpp>
 #include <realcraft/platform/file_io.hpp>
-
-#include <nlohmann/json.hpp>
 
 namespace realcraft::core {
 
@@ -18,8 +18,7 @@ struct Config::Impl {
     bool dirty = false;
 };
 
-Config::Config()
-    : impl_(std::make_unique<Impl>()) {
+Config::Config() : impl_(std::make_unique<Impl>()) {
     set_defaults();
 }
 
@@ -31,8 +30,7 @@ Config& Config::operator=(Config&&) noexcept = default;
 bool Config::load(const std::filesystem::path& path) {
     auto content = platform::FileSystem::read_text(path);
     if (!content) {
-        REALCRAFT_LOG_ERROR(log_category::CONFIG, "Failed to read config file: {}",
-                           path.string());
+        REALCRAFT_LOG_ERROR(log_category::CONFIG, "Failed to read config file: {}", path.string());
         return false;
     }
 
@@ -43,8 +41,7 @@ bool Config::load(const std::filesystem::path& path) {
         REALCRAFT_LOG_INFO(log_category::CONFIG, "Loaded config from: {}", path.string());
         return true;
     } catch (const json::parse_error& e) {
-        REALCRAFT_LOG_ERROR(log_category::CONFIG, "Failed to parse config file: {}",
-                           e.what());
+        REALCRAFT_LOG_ERROR(log_category::CONFIG, "Failed to parse config file: {}", e.what());
         return false;
     }
 }
@@ -54,8 +51,7 @@ bool Config::save(const std::filesystem::path& path) const {
     auto parent = path.parent_path();
     if (!parent.empty() && !platform::FileSystem::exists(parent)) {
         if (!platform::FileSystem::create_directories(parent)) {
-            REALCRAFT_LOG_ERROR(log_category::CONFIG,
-                               "Failed to create config directory: {}", parent.string());
+            REALCRAFT_LOG_ERROR(log_category::CONFIG, "Failed to create config directory: {}", parent.string());
             return false;
         }
     }
@@ -64,8 +60,7 @@ bool Config::save(const std::filesystem::path& path) const {
     std::string content = impl_->data.dump(4);
 
     if (!platform::FileSystem::write_text(path, content)) {
-        REALCRAFT_LOG_ERROR(log_category::CONFIG, "Failed to write config file: {}",
-                           path.string());
+        REALCRAFT_LOG_ERROR(log_category::CONFIG, "Failed to write config file: {}", path.string());
         return false;
     }
 
@@ -75,8 +70,7 @@ bool Config::save(const std::filesystem::path& path) const {
 
 bool Config::save() const {
     if (impl_->path.empty()) {
-        REALCRAFT_LOG_ERROR(log_category::CONFIG,
-                           "Cannot save config: no path specified");
+        REALCRAFT_LOG_ERROR(log_category::CONFIG, "Cannot save config: no path specified");
         return false;
     }
     return save(impl_->path);
@@ -92,8 +86,7 @@ bool Config::load_or_create_default(const std::filesystem::path& path) {
     impl_->path = path;
 
     if (!save(path)) {
-        REALCRAFT_LOG_WARN(log_category::CONFIG,
-                          "Failed to save default config, using in-memory defaults");
+        REALCRAFT_LOG_WARN(log_category::CONFIG, "Failed to save default config, using in-memory defaults");
     }
 
     return true;
@@ -103,8 +96,7 @@ std::filesystem::path Config::get_path() const {
     return impl_->path;
 }
 
-int Config::get_int(std::string_view section, std::string_view key,
-                     int default_value) const {
+int Config::get_int(std::string_view section, std::string_view key, int default_value) const {
     try {
         if (impl_->data.contains(section) && impl_->data[std::string(section)].contains(key)) {
             return impl_->data[std::string(section)][std::string(key)].get<int>();
@@ -115,8 +107,7 @@ int Config::get_int(std::string_view section, std::string_view key,
     return default_value;
 }
 
-double Config::get_double(std::string_view section, std::string_view key,
-                           double default_value) const {
+double Config::get_double(std::string_view section, std::string_view key, double default_value) const {
     try {
         if (impl_->data.contains(section) && impl_->data[std::string(section)].contains(key)) {
             return impl_->data[std::string(section)][std::string(key)].get<double>();
@@ -127,13 +118,11 @@ double Config::get_double(std::string_view section, std::string_view key,
     return default_value;
 }
 
-float Config::get_float(std::string_view section, std::string_view key,
-                         float default_value) const {
+float Config::get_float(std::string_view section, std::string_view key, float default_value) const {
     return static_cast<float>(get_double(section, key, static_cast<double>(default_value)));
 }
 
-bool Config::get_bool(std::string_view section, std::string_view key,
-                       bool default_value) const {
+bool Config::get_bool(std::string_view section, std::string_view key, bool default_value) const {
     try {
         if (impl_->data.contains(section) && impl_->data[std::string(section)].contains(key)) {
             return impl_->data[std::string(section)][std::string(key)].get<bool>();
@@ -144,8 +133,7 @@ bool Config::get_bool(std::string_view section, std::string_view key,
     return default_value;
 }
 
-std::string Config::get_string(std::string_view section, std::string_view key,
-                                std::string_view default_value) const {
+std::string Config::get_string(std::string_view section, std::string_view key, std::string_view default_value) const {
     try {
         if (impl_->data.contains(section) && impl_->data[std::string(section)].contains(key)) {
             return impl_->data[std::string(section)][std::string(key)].get<std::string>();
@@ -184,8 +172,7 @@ void Config::set_bool(std::string_view section, std::string_view key, bool value
     }
 }
 
-void Config::set_string(std::string_view section, std::string_view key,
-                         std::string_view value) {
+void Config::set_string(std::string_view section, std::string_view key, std::string_view value) {
     impl_->data[std::string(section)][std::string(key)] = std::string(value);
     impl_->dirty = true;
     if (impl_->change_callback) {
@@ -194,8 +181,7 @@ void Config::set_string(std::string_view section, std::string_view key,
 }
 
 bool Config::has(std::string_view section, std::string_view key) const {
-    return impl_->data.contains(section) &&
-           impl_->data[std::string(section)].contains(key);
+    return impl_->data.contains(section) && impl_->data[std::string(section)].contains(key);
 }
 
 bool Config::has_section(std::string_view section) const {
@@ -233,32 +219,19 @@ void Config::mark_clean() {
 }
 
 void Config::set_defaults() {
-    impl_->data = json{
-        {config_section::GRAPHICS, {
-            {config_key::FULLSCREEN, false},
-            {config_key::VSYNC, true},
-            {config_key::RESOLUTION_WIDTH, 1280},
-            {config_key::RESOLUTION_HEIGHT, 720},
-            {config_key::TARGET_FPS, 0},
-            {config_key::VALIDATION_ENABLED, false}
-        }},
-        {config_section::AUDIO, {
-            {config_key::MASTER_VOLUME, 1.0},
-            {config_key::MUSIC_VOLUME, 0.7},
-            {config_key::SFX_VOLUME, 1.0}
-        }},
-        {config_section::INPUT, {
-            {config_key::MOUSE_SENSITIVITY, 1.0},
-            {config_key::INVERT_Y, false}
-        }},
-        {config_section::GAMEPLAY, {
-            {config_key::VIEW_DISTANCE, 8}
-        }},
-        {config_section::DEBUG, {
-            {config_key::SHOW_FPS, true},
-            {config_key::LOG_LEVEL, "info"}
-        }}
-    };
+    impl_->data =
+        json{{config_section::GRAPHICS,
+              {{config_key::FULLSCREEN, false},
+               {config_key::VSYNC, true},
+               {config_key::RESOLUTION_WIDTH, 1280},
+               {config_key::RESOLUTION_HEIGHT, 720},
+               {config_key::TARGET_FPS, 0},
+               {config_key::VALIDATION_ENABLED, false}}},
+             {config_section::AUDIO,
+              {{config_key::MASTER_VOLUME, 1.0}, {config_key::MUSIC_VOLUME, 0.7}, {config_key::SFX_VOLUME, 1.0}}},
+             {config_section::INPUT, {{config_key::MOUSE_SENSITIVITY, 1.0}, {config_key::INVERT_Y, false}}},
+             {config_section::GAMEPLAY, {{config_key::VIEW_DISTANCE, 8}}},
+             {config_section::DEBUG, {{config_key::SHOW_FPS, true}, {config_key::LOG_LEVEL, "info"}}}};
     impl_->dirty = true;
 }
 

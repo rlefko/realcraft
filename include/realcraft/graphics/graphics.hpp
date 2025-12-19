@@ -4,7 +4,6 @@
 #pragma once
 
 // Include all graphics headers
-#include "types.hpp"
 #include "buffer.hpp"
 #include "command_buffer.hpp"
 #include "device.hpp"
@@ -15,6 +14,7 @@
 #include "shader_compiler.hpp"
 #include "swap_chain.hpp"
 #include "texture.hpp"
+#include "types.hpp"
 
 namespace realcraft::graphics {
 

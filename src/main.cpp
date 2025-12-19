@@ -1,9 +1,9 @@
 // RealCraft - Realistic Voxel Sandbox Game Engine
 // main.cpp - Entry point
 
+#include <realcraft/core/config.hpp>
 #include <realcraft/core/engine.hpp>
 #include <realcraft/core/logger.hpp>
-#include <realcraft/core/config.hpp>
 #include <realcraft/graphics/command_buffer.hpp>
 #include <realcraft/graphics/swap_chain.hpp>
 #include <realcraft/graphics/types.hpp>
@@ -14,7 +14,6 @@
 
 // FastNoise2
 #include <FastNoise/FastNoise.h>
-
 #include <cmath>
 
 namespace {
@@ -118,8 +117,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
 
         if (input->is_key_just_pressed(platform::KeyCode::F11)) {
             window->set_fullscreen(!window->is_fullscreen());
-            REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Fullscreen: {}",
-                              window->is_fullscreen() ? "ON" : "OFF");
+            REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Fullscreen: {}", window->is_fullscreen() ? "ON" : "OFF");
         }
 
         // Capture mouse on left click
@@ -148,18 +146,14 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             float b = 0.5f + 0.5f * std::sin(static_cast<float>(total_time) + 4.189f);
 
             graphics::RenderPassDesc pass_desc;
-            pass_desc.color_attachments.push_back({
-                graphics::TextureFormat::BGRA8Unorm,
-                graphics::LoadOp::Clear,
-                graphics::StoreOp::Store
-            });
+            pass_desc.color_attachments.push_back(
+                {graphics::TextureFormat::BGRA8Unorm, graphics::LoadOp::Clear, graphics::StoreOp::Store});
 
             graphics::ClearValue color_clear;
             color_clear.color = {r, g, b, 1.0f};
             graphics::ClearValue depth_clear;
 
-            cmd->begin_render_pass(pass_desc, swap_chain->get_current_texture(),
-                                   nullptr, color_clear, depth_clear);
+            cmd->begin_render_pass(pass_desc, swap_chain->get_current_texture(), nullptr, color_clear, depth_clear);
             cmd->end_render_pass();
         }
 

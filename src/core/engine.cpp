@@ -1,13 +1,12 @@
 // RealCraft Engine Core
 // engine.cpp - Main engine class implementation
 
+#include <format>
 #include <realcraft/core/engine.hpp>
 #include <realcraft/core/memory.hpp>
-#include <realcraft/platform/platform.hpp>
-#include <realcraft/platform/input_action.hpp>
 #include <realcraft/platform/file_io.hpp>
-
-#include <format>
+#include <realcraft/platform/input_action.hpp>
+#include <realcraft/platform/platform.hpp>
 
 namespace realcraft::core {
 
@@ -36,8 +35,7 @@ struct Engine::Impl {
     static constexpr double FPS_UPDATE_INTERVAL = 0.5;
 };
 
-Engine::Engine()
-    : impl_(std::make_unique<Impl>()) {
+Engine::Engine() : impl_(std::make_unique<Impl>()) {
     if (s_instance == nullptr) {
         s_instance = this;
     }
@@ -91,16 +89,13 @@ bool Engine::initialize(const EngineConfig& config) {
     platform::Window::Config window_config = config.window;
 
     // Override window config with saved settings
-    window_config.fullscreen = impl_->app_config->get_bool(
-        config_section::GRAPHICS, config_key::FULLSCREEN, window_config.fullscreen);
-    window_config.vsync = impl_->app_config->get_bool(
-        config_section::GRAPHICS, config_key::VSYNC, window_config.vsync);
+    window_config.fullscreen =
+        impl_->app_config->get_bool(config_section::GRAPHICS, config_key::FULLSCREEN, window_config.fullscreen);
+    window_config.vsync = impl_->app_config->get_bool(config_section::GRAPHICS, config_key::VSYNC, window_config.vsync);
     window_config.width = static_cast<uint32_t>(impl_->app_config->get_int(
-        config_section::GRAPHICS, config_key::RESOLUTION_WIDTH,
-        static_cast<int>(window_config.width)));
+        config_section::GRAPHICS, config_key::RESOLUTION_WIDTH, static_cast<int>(window_config.width)));
     window_config.height = static_cast<uint32_t>(impl_->app_config->get_int(
-        config_section::GRAPHICS, config_key::RESOLUTION_HEIGHT,
-        static_cast<int>(window_config.height)));
+        config_section::GRAPHICS, config_key::RESOLUTION_HEIGHT, static_cast<int>(window_config.height)));
 
     if (!impl_->window->initialize(window_config)) {
         REALCRAFT_LOG_ERROR(log_category::ENGINE, "Failed to create window");
@@ -116,7 +111,8 @@ bool Engine::initialize(const EngineConfig& config) {
     graphics::DeviceDesc device_desc;
     device_desc.metal_layer = impl_->window->get_metal_layer();
     device_desc.native_window = impl_->window->get_native_window();
-    device_desc.enable_validation = config.enable_graphics_validation ||
+    device_desc.enable_validation =
+        config.enable_graphics_validation ||
         impl_->app_config->get_bool(config_section::GRAPHICS, config_key::VALIDATION_ENABLED, false);
     device_desc.vsync = window_config.vsync;
 
@@ -128,26 +124,23 @@ bool Engine::initialize(const EngineConfig& config) {
         return false;
     }
 
-    REALCRAFT_LOG_INFO(log_category::ENGINE, "Graphics device: {}",
-                       impl_->graphics_device->get_backend_name());
+    REALCRAFT_LOG_INFO(log_category::ENGINE, "Graphics device: {}", impl_->graphics_device->get_backend_name());
     auto caps = impl_->graphics_device->get_capabilities();
     REALCRAFT_LOG_INFO(log_category::ENGINE, "  Device: {}", caps.device_name);
     REALCRAFT_LOG_INFO(log_category::ENGINE, "  API: {}", caps.api_name);
 
     // Set up window resize callback
-    impl_->window->set_framebuffer_resize_callback(
-        [this](uint32_t width, uint32_t height) {
-            REALCRAFT_LOG_INFO(log_category::ENGINE, "Framebuffer resized: {}x{}",
-                              width, height);
-            impl_->graphics_device->resize_swap_chain(width, height);
-        });
+    impl_->window->set_framebuffer_resize_callback([this](uint32_t width, uint32_t height) {
+        REALCRAFT_LOG_INFO(log_category::ENGINE, "Framebuffer resized: {}x{}", width, height);
+        impl_->graphics_device->resize_swap_chain(width, height);
+    });
 
     // Create and configure game loop
     impl_->game_loop = std::make_unique<GameLoop>();
 
     GameLoopConfig loop_config = config.game_loop;
-    double target_fps = impl_->app_config->get_double(
-        config_section::GRAPHICS, config_key::TARGET_FPS, loop_config.target_fps);
+    double target_fps =
+        impl_->app_config->get_double(config_section::GRAPHICS, config_key::TARGET_FPS, loop_config.target_fps);
     loop_config.target_fps = target_fps;
     loop_config.vsync = window_config.vsync;
 
@@ -255,13 +248,10 @@ void Engine::run() {
         if (impl_->fps_update_timer >= Impl::FPS_UPDATE_INTERVAL) {
             impl_->fps_update_timer = 0.0;
             auto size = impl_->window->get_framebuffer_size();
-            bool show_fps = impl_->app_config->get_bool(
-                config_section::DEBUG, config_key::SHOW_FPS, true);
+            bool show_fps = impl_->app_config->get_bool(config_section::DEBUG, config_key::SHOW_FPS, true);
             if (show_fps) {
-                std::string title = std::format("{} | {}x{} | {:.1f} FPS",
-                    impl_->config.app_name,
-                    size.x, size.y,
-                    impl_->game_loop->get_average_fps());
+                std::string title = std::format("{} | {}x{} | {:.1f} FPS", impl_->config.app_name, size.x, size.y,
+                                                impl_->game_loop->get_average_fps());
                 impl_->window->set_title(title);
             }
         }
