@@ -28,6 +28,21 @@ message(STATUS "  Bullet include dirs: ${BULLET_INCLUDE_DIRS}")
 find_package(glfw3 CONFIG REQUIRED)
 message(STATUS "Found GLFW3")
 
+# Shader compilation (glslang) - GLSL to SPIR-V
+find_package(glslang CONFIG REQUIRED)
+message(STATUS "Found glslang")
+
+# SPIR-V tools (spirv-tools) - SPIR-V optimization and validation
+find_package(SPIRV-Tools CONFIG REQUIRED)
+message(STATUS "Found SPIRV-Tools")
+
+# SPIR-V cross-compilation (spirv-cross) - SPIR-V to MSL/HLSL
+find_package(spirv_cross_core CONFIG REQUIRED)
+find_package(spirv_cross_glsl CONFIG REQUIRED)
+find_package(spirv_cross_msl CONFIG REQUIRED)
+find_package(spirv_cross_reflect CONFIG REQUIRED)
+message(STATUS "Found spirv-cross")
+
 # Noise generation (FastNoise2) - added as git submodule
 # FastNoise2 is not available in vcpkg, so we include it as a subdirectory
 set(FASTNOISE2_NOISETOOL OFF CACHE BOOL "Build Noise Tool" FORCE)
@@ -110,4 +125,36 @@ function(realcraft_link_test_dependencies target)
         PRIVATE
             ${BULLET_INCLUDE_DIRS}
     )
+endfunction()
+
+# Helper function to link graphics/shader dependencies
+function(realcraft_link_graphics_dependencies target)
+    target_link_libraries(${target}
+        PRIVATE
+            glslang::glslang
+            glslang::glslang-default-resource-limits
+            glslang::SPIRV
+            glslang::SPVRemapper
+            SPIRV-Tools-static
+            spirv-cross-core
+            spirv-cross-glsl
+            spirv-cross-msl
+            spirv-cross-reflect
+    )
+
+    if(REALCRAFT_PLATFORM_MACOS)
+        target_link_libraries(${target}
+            PRIVATE
+                ${METAL_FRAMEWORK}
+                ${METALKIT_FRAMEWORK}
+                ${QUARTZCORE_FRAMEWORK}
+                ${FOUNDATION_FRAMEWORK}
+                ${COCOA_FRAMEWORK}
+        )
+    elseif(REALCRAFT_PLATFORM_LINUX)
+        target_link_libraries(${target}
+            PRIVATE
+                Vulkan::Vulkan
+        )
+    endif()
 endfunction()

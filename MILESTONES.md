@@ -79,28 +79,25 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Frame time measurement
   - [x] Delta time calculation
 
-### Milestone 1.2: Graphics API Abstraction `[High]`
+### Milestone 1.2: Graphics API Abstraction `[High]` `[x]`
 
-- [ ] Design graphics abstraction interface
-  - [ ] Device/context management
-  - [ ] Command buffer abstraction
-  - [ ] Resource (buffer, texture) abstraction
-  - [ ] Pipeline state abstraction
-- [ ] Implement Metal backend (macOS)
-  - [ ] Device initialization
-  - [ ] Swap chain setup
-  - [ ] Command encoding
-  - [ ] Resource creation
-- [ ] Implement Vulkan backend (Windows/Linux)
-  - [ ] Instance and device setup
-  - [ ] Swap chain management
-  - [ ] Command buffer handling
-  - [ ] Memory allocation
-- [ ] Implement shader compilation pipeline
-  - [ ] MSL compilation (Metal)
-  - [ ] SPIR-V compilation (Vulkan)
-  - [ ] Shader reflection for uniforms
-  - [ ] Hot-reload support for development
+- [x] Design graphics abstraction interface
+  - [x] Device/context management
+  - [x] Command buffer abstraction
+  - [x] Resource (buffer, texture) abstraction
+  - [x] Pipeline state abstraction
+- [x] Implement Metal backend (macOS)
+  - [x] Device initialization
+  - [x] Swap chain setup
+  - [x] Command encoding
+  - [x] Resource creation
+- [~] Implement Vulkan backend (Windows/Linux)
+  - [~] Stub implementation (throws NotImplemented)
+- [x] Implement shader compilation pipeline
+  - [x] GLSL to SPIR-V compilation (glslang)
+  - [x] SPIR-V to MSL cross-compilation (SPIRV-Cross)
+  - [x] Shader reflection for uniforms
+  - [ ] Hot-reload support for development (deferred)
 
 ### Milestone 1.3: Engine Core `[Medium]`
 
