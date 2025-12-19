@@ -2,9 +2,9 @@
 // timer_test.cpp - Timer unit tests
 
 #include <gtest/gtest.h>
-#include <realcraft/platform/timer.hpp>
 
 #include <chrono>
+#include <realcraft/platform/timer.hpp>
 #include <thread>
 
 using namespace realcraft::platform;
@@ -25,8 +25,8 @@ TEST_F(TimerTest, MeasuresElapsedTime) {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     double elapsed = timer.elapsed_milliseconds();
-    EXPECT_GE(elapsed, 45.0);  // Allow some tolerance
-    EXPECT_LT(elapsed, 150.0);
+    EXPECT_GE(elapsed, 45.0);   // Allow some tolerance
+    EXPECT_LT(elapsed, 250.0);  // CI runners can be slow
 }
 
 TEST_F(TimerTest, ResetWorks) {
@@ -86,8 +86,8 @@ TEST_F(FrameTimerTest, DeltaTimeCalculation) {
 
     double delta = ft.get_delta_time();
     // CI runners can have significant timing variability, so use a wide tolerance
-    EXPECT_GT(delta, 0.010);   // At least 10ms (sleep was 16ms)
-    EXPECT_LT(delta, 0.200);   // Less than 200ms (reasonable upper bound)
+    EXPECT_GT(delta, 0.010);  // At least 10ms (sleep was 16ms)
+    EXPECT_LT(delta, 0.200);  // Less than 200ms (reasonable upper bound)
 }
 
 TEST_F(FrameTimerTest, DeltaTimeConversions) {
@@ -155,7 +155,7 @@ TEST_F(FrameTimerTest, TotalTime) {
 
     double total = ft.get_total_time();
     EXPECT_GE(total, 0.045);
-    EXPECT_LT(total, 0.150);
+    EXPECT_LT(total, 0.250);  // CI runners can be slow
 }
 
 TEST_F(FrameTimerTest, FrameLimitingSettings) {

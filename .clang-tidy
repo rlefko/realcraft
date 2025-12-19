@@ -1,0 +1,65 @@
+---
+# RealCraft clang-tidy configuration
+# Static analysis for bugs, performance, and code quality
+
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-type-vararg,
+  -readability-function-cognitive-complexity,
+  -bugprone-easily-swappable-parameters
+
+# Don't treat warnings as errors by default (lint job will use --warnings-as-errors)
+WarningsAsErrors: ''
+
+# Only analyze our code, not dependencies
+HeaderFilterRegex: 'include/realcraft/.*|src/.*'
+
+# Use the project's .clang-format for fix suggestions
+FormatStyle: file
+
+CheckOptions:
+  # Naming conventions (match project style)
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: '_'
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+
+  # Allow single-letter loop variables
+  - key: readability-identifier-length.MinimumVariableNameLength
+    value: 1
+  - key: readability-identifier-length.MinimumParameterNameLength
+    value: 1
+
+  # Performance tuning
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'std::function.*'
+...

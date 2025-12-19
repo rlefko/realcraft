@@ -10,9 +10,109 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
 jobs:
+  # Fast lint job - runs first, fails fast on code quality issues
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18 clang-tidy-18
+
+      - name: Check formatting
+        run: |
+          echo "Checking code formatting..."
+          find src include -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.h' \) \
+            -not -path '*/external/*' | \
+            xargs clang-format-18 --dry-run --Werror
+          echo "All files are properly formatted!"
+
+  # CodeQL security analysis - runs in parallel with builds
+  codeql:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: cpp
+          queries: +security-and-quality
+          config: |
+            paths:
+              - src
+              - include
+            paths-ignore:
+              - '**/vcpkg_installed/**'
+              - '**/build/**'
+              - '**/external/**'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libgl1-mesa-dev \
+            libvulkan-dev
+
+      - name: Export GitHub Actions cache environment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: codeql-ccache
+          max-size: 500M
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'c82f74667287d3dc386bce81e44964370c91a289'
+
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28"
+
+      - name: Build for Analysis
+        uses: lukka/run-cmake@v10
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+        with:
+          configurePreset: 'ci-linux'
+          buildPreset: 'ci-linux'
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:cpp"
+
   build-macos:
     name: macOS (Metal)
     runs-on: macos-14
+    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,6 +126,12 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: macos-ccache
+          max-size: 500M
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -38,6 +144,9 @@ jobs:
 
       - name: Configure and Build
         uses: lukka/run-cmake@v10
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
         with:
           configurePreset: 'ci-macos'
           buildPreset: 'ci-macos'
@@ -55,6 +164,7 @@ jobs:
   build-windows:
     name: Windows (DX12)
     runs-on: windows-latest
+    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,6 +178,12 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - name: Setup MSVC Developer Environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -80,6 +196,11 @@ jobs:
 
       - name: Configure and Build
         uses: lukka/run-cmake@v10
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: sccache
+          CMAKE_CXX_COMPILER_LAUNCHER: sccache
+          CC: cl
+          CXX: cl
         with:
           configurePreset: 'ci-windows'
           buildPreset: 'ci-windows'
@@ -97,6 +218,7 @@ jobs:
   build-linux:
     name: Linux (Vulkan)
     runs-on: ubuntu-24.04
+    needs: lint
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -123,6 +245,12 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: linux-ccache
+          max-size: 500M
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
@@ -135,6 +263,9 @@ jobs:
 
       - name: Configure and Build
         uses: lukka/run-cmake@v10
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
         with:
           configurePreset: 'ci-linux'
           buildPreset: 'ci-linux'

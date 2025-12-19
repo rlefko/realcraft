@@ -116,12 +116,11 @@
     {
       "name": "ci-windows",
       "displayName": "CI Windows",
-      "description": "CI build for Windows",
+      "description": "CI build for Windows with Ninja",
       "inherits": "base",
-      "generator": "Visual Studio 17 2022",
-      "architecture": {
-        "value": "x64",
-        "strategy": "set"
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -167,8 +166,7 @@
     },
     {
       "name": "ci-windows",
-      "configurePreset": "ci-windows",
-      "configuration": "Release"
+      "configurePreset": "ci-windows"
     },
     {
       "name": "ci-linux",
@@ -205,8 +203,7 @@
     {
       "name": "ci-windows",
       "configurePreset": "ci-windows",
-      "inherits": "test-base",
-      "configuration": "Release"
+      "inherits": "test-base"
     },
     {
       "name": "ci-linux",
