@@ -1,6 +1,11 @@
 // RealCraft - Realistic Voxel Sandbox Game Engine
 // main.cpp - Entry point
 
+#include <realcraft/platform/input_action.hpp>
+#include <realcraft/platform/platform.hpp>
+#include <realcraft/platform/timer.hpp>
+#include <realcraft/platform/window.hpp>
+
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -12,6 +17,7 @@
 #include <FastNoise/FastNoise.h>
 
 #include <cmath>
+#include <format>
 #include <iostream>
 #include <string>
 
@@ -68,8 +74,7 @@ bool verify_bullet_physics() {
     btSequentialImpulseConstraintSolver solver;
 
     // Create the dynamics world
-    btDiscreteDynamicsWorld dynamics_world(
-        &dispatcher, &broadphase, &solver, &collision_config);
+    btDiscreteDynamicsWorld dynamics_world(&dispatcher, &broadphase, &solver, &collision_config);
 
     // Set gravity
     dynamics_world.setGravity(btVector3(0, -9.81f, 0));
@@ -106,31 +111,124 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     spdlog::info("Platform: {} ({})", get_platform_name(), get_architecture_name());
     spdlog::info("Graphics API: {}", get_graphics_api_name());
 
-    // Verify GLM is working
-    glm::vec3 test_vector(1.0f, 2.0f, 3.0f);
-    spdlog::info("GLM test: vec3({}, {}, {})", test_vector.x, test_vector.y, test_vector.z);
+    // Verify dependencies
+    if (!verify_bullet_physics()) {
+        spdlog::error("Bullet Physics verification failed");
+        return 1;
+    }
+    spdlog::info("Bullet Physics: OK");
 
-    // Verify nlohmann_json is working
-    nlohmann::json test_json = {{"engine", "RealCraft"}, {"version", VERSION}};
-    spdlog::info("JSON test: {}", test_json.dump());
+    if (!verify_fastnoise2()) {
+        spdlog::error("FastNoise2 verification failed");
+        return 1;
+    }
+    spdlog::info("FastNoise2: OK");
 
-    // Verify Bullet Physics is working
-    if (verify_bullet_physics()) {
-        spdlog::info("Bullet Physics test: PASSED (dynamics world created, gravity set)");
-    } else {
-        spdlog::error("Bullet Physics test: FAILED");
+    // Initialize platform layer
+    if (!realcraft::platform::initialize()) {
+        spdlog::error("Failed to initialize platform layer");
         return 1;
     }
 
-    // Verify FastNoise2 is working
-    if (verify_fastnoise2()) {
-        spdlog::info("FastNoise2 test: PASSED (fractal noise generated)");
-    } else {
-        spdlog::error("FastNoise2 test: FAILED");
+    // Create window
+    auto window = realcraft::platform::create_window();
+    realcraft::platform::Window::Config config;
+    config.title = "RealCraft";
+    config.width = 1280;
+    config.height = 720;
+    config.fullscreen = false;
+    config.vsync = true;
+
+    if (!window->initialize(config)) {
+        spdlog::error("Failed to create window");
+        realcraft::platform::shutdown();
         return 1;
     }
 
-    spdlog::info("Build system verification complete!");
+    // Get input and set up input mapper
+    auto* input = window->get_input();
+    realcraft::platform::InputMapper input_mapper(input);
+    input_mapper.load_defaults();
 
+    // Set up frame timer
+    realcraft::platform::FrameTimer frame_timer;
+
+    // Track FPS for title update
+    double fps_update_timer = 0.0;
+    constexpr double FPS_UPDATE_INTERVAL = 0.5;  // Update title every 0.5 seconds
+
+    // Set up window callbacks
+    window->set_framebuffer_resize_callback([](uint32_t width, uint32_t height) {
+        spdlog::info("Framebuffer resized: {}x{}", width, height);
+    });
+
+    spdlog::info("Window created successfully");
+    spdlog::info("Controls:");
+    spdlog::info("  ESC - Exit");
+    spdlog::info("  F11 - Toggle fullscreen");
+    spdlog::info("  Click - Capture mouse (ESC to release)");
+
+    // Main game loop
+    while (!window->should_close()) {
+        frame_timer.begin_frame();
+
+        // Poll input events
+        window->poll_events();
+
+        // Handle input
+        if (input_mapper.is_action_just_pressed("toggle_pause")) {
+            if (input->is_mouse_captured()) {
+                input->set_mouse_captured(false);
+                spdlog::info("Mouse released");
+            } else {
+                window->set_should_close(true);
+            }
+        }
+
+        if (input_mapper.is_action_just_pressed("toggle_fullscreen")) {
+            window->set_fullscreen(!window->is_fullscreen());
+            spdlog::info("Fullscreen: {}", window->is_fullscreen() ? "ON" : "OFF");
+        }
+
+        // Capture mouse on left click
+        if (input->is_mouse_button_just_pressed(realcraft::platform::MouseButton::Left)) {
+            if (!input->is_mouse_captured()) {
+                input->set_mouse_captured(true);
+                spdlog::info("Mouse captured");
+            }
+        }
+
+        // Show mouse delta when captured (for FPS camera control demo)
+        if (input->is_mouse_captured()) {
+            auto delta = input->get_mouse_delta();
+            if (std::abs(delta.x) > 0.1 || std::abs(delta.y) > 0.1) {
+                // In a real game, this would rotate the camera
+                // spdlog::trace("Mouse delta: ({:.1f}, {:.1f})", delta.x, delta.y);
+            }
+        }
+
+        // Clear per-frame input state
+        input->end_frame();
+
+        frame_timer.end_frame();
+
+        // Update window title with FPS periodically
+        fps_update_timer += frame_timer.get_unscaled_delta_time();
+        if (fps_update_timer >= FPS_UPDATE_INTERVAL) {
+            fps_update_timer = 0.0;
+            auto size = window->get_framebuffer_size();
+            std::string title =
+                std::format("RealCraft | {}x{} | {:.1f} FPS | Frame: {}", size.x, size.y,
+                            frame_timer.get_average_fps(), frame_timer.get_frame_count());
+            window->set_title(title);
+        }
+    }
+
+    // Cleanup
+    spdlog::info("Shutting down...");
+    window->shutdown();
+    realcraft::platform::shutdown();
+
+    spdlog::info("Goodbye!");
     return 0;
 }

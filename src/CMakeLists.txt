@@ -1,6 +1,9 @@
 # src/CMakeLists.txt
 # RealCraft main executable
 
+# Add platform subdirectory first (builds realcraft::platform library)
+add_subdirectory(platform)
+
 add_executable(realcraft
     main.cpp
 )
@@ -10,6 +13,12 @@ realcraft_configure_target(realcraft)
 
 # Link dependencies
 realcraft_link_dependencies(realcraft)
+
+# Link platform library
+target_link_libraries(realcraft
+    PRIVATE
+        realcraft::platform
+)
 
 # Include directories
 target_include_directories(realcraft

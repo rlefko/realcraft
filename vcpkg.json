@@ -10,6 +10,7 @@
     "spdlog",
     "gtest",
     "nlohmann-json",
-    "bullet3"
+    "bullet3",
+    "glfw3"
   ]
 }
