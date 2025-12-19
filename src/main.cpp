@@ -6,6 +6,12 @@
 #include <realcraft/platform/timer.hpp>
 #include <realcraft/platform/window.hpp>
 
+// Graphics
+#include <realcraft/graphics/device.hpp>
+#include <realcraft/graphics/command_buffer.hpp>
+#include <realcraft/graphics/swap_chain.hpp>
+#include <realcraft/graphics/types.hpp>
+
 #include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -157,16 +163,40 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     double fps_update_timer = 0.0;
     constexpr double FPS_UPDATE_INTERVAL = 0.5;  // Update title every 0.5 seconds
 
-    // Set up window callbacks
-    window->set_framebuffer_resize_callback([](uint32_t width, uint32_t height) {
-        spdlog::info("Framebuffer resized: {}x{}", width, height);
-    });
-
     spdlog::info("Window created successfully");
     spdlog::info("Controls:");
     spdlog::info("  ESC - Exit");
     spdlog::info("  F11 - Toggle fullscreen");
     spdlog::info("  Click - Capture mouse (ESC to release)");
+
+    // Initialize graphics device
+    realcraft::graphics::DeviceDesc device_desc;
+    device_desc.metal_layer = window->get_metal_layer();
+    device_desc.native_window = window->get_native_window();
+    device_desc.enable_validation = true;
+    device_desc.vsync = true;
+
+    auto graphics_device = realcraft::graphics::create_graphics_device(device_desc);
+    if (!graphics_device) {
+        spdlog::error("Failed to create graphics device");
+        window->shutdown();
+        realcraft::platform::shutdown();
+        return 1;
+    }
+
+    spdlog::info("Graphics device: {}", graphics_device->get_backend_name());
+    auto caps = graphics_device->get_capabilities();
+    spdlog::info("  Device: {}", caps.device_name);
+    spdlog::info("  API: {}", caps.api_name);
+
+    // Set up window resize callback to resize swap chain
+    window->set_framebuffer_resize_callback([&graphics_device](uint32_t width, uint32_t height) {
+        spdlog::info("Framebuffer resized: {}x{}", width, height);
+        graphics_device->resize_swap_chain(width, height);
+    });
+
+    // Track time for animated clear color
+    double total_time = 0.0;
 
     // Main game loop
     while (!window->should_close()) {
@@ -210,7 +240,45 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
         // Clear per-frame input state
         input->end_frame();
 
+        // Begin graphics frame
+        graphics_device->begin_frame();
+
+        // Create command buffer and render
+        auto cmd = graphics_device->create_command_buffer();
+        cmd->begin();
+
+        // Get current swap chain texture and render to it
+        auto* swap_chain = graphics_device->get_swap_chain();
+        if (swap_chain && swap_chain->get_current_texture()) {
+            // Animated clear color (cycles through rainbow)
+            float r = 0.5f + 0.5f * std::sin(static_cast<float>(total_time));
+            float g = 0.5f + 0.5f * std::sin(static_cast<float>(total_time) + 2.094f);
+            float b = 0.5f + 0.5f * std::sin(static_cast<float>(total_time) + 4.189f);
+
+            realcraft::graphics::RenderPassDesc pass_desc;
+            pass_desc.color_attachments.push_back({
+                realcraft::graphics::TextureFormat::BGRA8Unorm,
+                realcraft::graphics::LoadOp::Clear,
+                realcraft::graphics::StoreOp::Store
+            });
+
+            realcraft::graphics::ClearValue color_clear;
+            color_clear.color = {r, g, b, 1.0f};
+            realcraft::graphics::ClearValue depth_clear;
+
+            cmd->begin_render_pass(pass_desc, swap_chain->get_current_texture(),
+                                   nullptr, color_clear, depth_clear);
+            cmd->end_render_pass();
+        }
+
+        cmd->end();
+        graphics_device->submit(cmd.get(), false);
+
+        // End graphics frame (present)
+        graphics_device->end_frame();
+
         frame_timer.end_frame();
+        total_time += frame_timer.get_unscaled_delta_time();
 
         // Update window title with FPS periodically
         fps_update_timer += frame_timer.get_unscaled_delta_time();
@@ -223,6 +291,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             window->set_title(title);
         }
     }
+
+    // Wait for GPU to finish before cleanup
+    graphics_device->wait_idle();
 
     // Cleanup
     spdlog::info("Shutting down...");

@@ -11,6 +11,9 @@
     "gtest",
     "nlohmann-json",
     "bullet3",
-    "glfw3"
+    "glfw3",
+    "glslang",
+    "spirv-cross",
+    "spirv-tools"
   ]
 }
