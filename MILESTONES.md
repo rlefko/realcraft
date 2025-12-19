@@ -55,29 +55,29 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 1: Core Engine & Platform Abstraction `[ ]`
+## Phase 1: Core Engine & Platform Abstraction `[~]`
 
 **Goal:** Create foundational engine layer with window management, input, and graphics API abstraction
 
-### Milestone 1.1: Platform Abstraction Layer `[Medium]`
+### Milestone 1.1: Platform Abstraction Layer `[Medium]` `[x]`
 
-- [ ] Implement window creation and management
-  - [ ] GLFW integration or native window APIs
-  - [ ] Fullscreen/windowed mode switching
-  - [ ] Multi-monitor support
-- [ ] Implement input handling
-  - [ ] Keyboard input with key states
-  - [ ] Mouse input with position and buttons
-  - [ ] Mouse capture for FPS controls
-  - [ ] Input mapping/rebinding system
-- [ ] Implement file I/O abstraction
-  - [ ] Cross-platform path handling
-  - [ ] Async file loading
-  - [ ] Resource caching
-- [ ] Implement timer/clock utilities
-  - [ ] High-resolution timers
-  - [ ] Frame time measurement
-  - [ ] Delta time calculation
+- [x] Implement window creation and management
+  - [x] GLFW integration or native window APIs
+  - [x] Fullscreen/windowed mode switching
+  - [x] Multi-monitor support
+- [x] Implement input handling
+  - [x] Keyboard input with key states
+  - [x] Mouse input with position and buttons
+  - [x] Mouse capture for FPS controls
+  - [x] Input mapping/rebinding system
+- [x] Implement file I/O abstraction
+  - [x] Cross-platform path handling
+  - [x] Async file loading
+  - [x] Resource caching
+- [x] Implement timer/clock utilities
+  - [x] High-resolution timers
+  - [x] Frame time measurement
+  - [x] Delta time calculation
 
 ### Milestone 1.2: Graphics API Abstraction `[High]`
 

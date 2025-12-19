@@ -24,6 +24,10 @@ find_package(Bullet CONFIG REQUIRED)
 message(STATUS "Found Bullet3")
 message(STATUS "  Bullet include dirs: ${BULLET_INCLUDE_DIRS}")
 
+# Windowing and input (GLFW3)
+find_package(glfw3 CONFIG REQUIRED)
+message(STATUS "Found GLFW3")
+
 # Noise generation (FastNoise2) - added as git submodule
 # FastNoise2 is not available in vcpkg, so we include it as a subdirectory
 set(FASTNOISE2_NOISETOOL OFF CACHE BOOL "Build Noise Tool" FORCE)
@@ -65,6 +69,7 @@ function(realcraft_link_dependencies target)
             nlohmann_json::nlohmann_json
             ${BULLET_LIBRARIES}
             FastNoise
+            glfw
     )
 
     # Add Bullet include directories
