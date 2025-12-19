@@ -1,5 +1,7 @@
 # RealCraft
 
+[![CI](https://github.com/rlefko/realcraft/actions/workflows/ci.yml/badge.svg)](https://github.com/rlefko/realcraft/actions/workflows/ci.yml)
+
 A single-player voxel sandbox game combining the creative freedom of Minecraft with hyper-realistic graphics, physics, and world generation.
 
 ## Overview

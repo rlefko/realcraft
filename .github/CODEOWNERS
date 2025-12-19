@@ -1,0 +1,25 @@
+# CODEOWNERS - Auto-assign reviewers for PRs
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @rlefko
+
+# CI/CD configuration
+/.github/ @rlefko
+
+# Core engine subsystems
+/src/core/ @rlefko
+/include/realcraft/core/ @rlefko
+
+# Graphics abstraction layer
+/src/graphics/ @rlefko
+/include/realcraft/graphics/ @rlefko
+
+# Platform abstraction layer
+/src/platform/ @rlefko
+/include/realcraft/platform/ @rlefko
+
+# Build system
+/CMakeLists.txt @rlefko
+/CMakePresets.json @rlefko
+/vcpkg.json @rlefko
