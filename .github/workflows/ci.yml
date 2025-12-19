@@ -155,7 +155,7 @@ jobs:
         run: ctest --preset ci-macos --output-on-failure
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: realcraft-macos
           path: build/ci-macos/bin/
@@ -209,7 +209,7 @@ jobs:
         run: ctest --preset ci-windows --output-on-failure
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: realcraft-windows
           path: build/ci-windows/bin/
@@ -274,7 +274,7 @@ jobs:
         run: ctest --preset ci-linux --output-on-failure
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: realcraft-linux
           path: build/ci-linux/bin/
