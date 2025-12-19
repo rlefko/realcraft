@@ -8,7 +8,7 @@
 #include <realcraft/core/logger.hpp>
 #include <realcraft/world/serialization.hpp>
 #include <unordered_map>
-#include <zlib.h>
+#include <zstd.h>
 
 namespace realcraft::world {
 
@@ -18,43 +18,43 @@ namespace realcraft::world {
 
 namespace {
 
-std::vector<uint8_t> compress_zlib(std::span<const uint8_t> data) {
+constexpr int ZSTD_COMPRESSION_LEVEL = 3;  // Good balance of speed and ratio (1-22)
+
+std::vector<uint8_t> compress_zstd(std::span<const uint8_t> data) {
     if (data.empty()) {
         return {};
     }
 
     // Estimate compressed size
-    uLong compressed_size = compressBound(static_cast<uLong>(data.size()));
-    std::vector<uint8_t> compressed(compressed_size);
+    size_t bound = ZSTD_compressBound(data.size());
+    std::vector<uint8_t> compressed(bound);
 
-    int result = compress2(compressed.data(), &compressed_size, data.data(), static_cast<uLong>(data.size()),
-                           Z_DEFAULT_COMPRESSION);
+    size_t result = ZSTD_compress(compressed.data(), bound, data.data(), data.size(), ZSTD_COMPRESSION_LEVEL);
 
-    if (result != Z_OK) {
-        REALCRAFT_LOG_ERROR(core::log_category::WORLD, "zlib compression failed: {}", result);
+    if (ZSTD_isError(result)) {
+        REALCRAFT_LOG_ERROR(core::log_category::WORLD, "zstd compression failed: {}", ZSTD_getErrorName(result));
         return {};
     }
 
-    compressed.resize(compressed_size);
+    compressed.resize(result);
     return compressed;
 }
 
-std::vector<uint8_t> decompress_zlib(std::span<const uint8_t> data, size_t uncompressed_size) {
+std::vector<uint8_t> decompress_zstd(std::span<const uint8_t> data, size_t uncompressed_size) {
     if (data.empty()) {
         return {};
     }
 
     std::vector<uint8_t> decompressed(uncompressed_size);
-    uLong dest_size = static_cast<uLong>(uncompressed_size);
 
-    int result = uncompress(decompressed.data(), &dest_size, data.data(), static_cast<uLong>(data.size()));
+    size_t result = ZSTD_decompress(decompressed.data(), uncompressed_size, data.data(), data.size());
 
-    if (result != Z_OK) {
-        REALCRAFT_LOG_ERROR(core::log_category::WORLD, "zlib decompression failed: {}", result);
+    if (ZSTD_isError(result)) {
+        REALCRAFT_LOG_ERROR(core::log_category::WORLD, "zstd decompression failed: {}", ZSTD_getErrorName(result));
         return {};
     }
 
-    decompressed.resize(dest_size);
+    decompressed.resize(result);
     return decompressed;
 }
 
@@ -65,7 +65,7 @@ std::vector<uint8_t> decompress_zlib(std::span<const uint8_t> data, size_t uncom
 // ============================================================================
 
 struct ChunkSerializer::Impl {
-    CompressionType compression = CompressionType::Zlib;
+    CompressionType compression = CompressionType::Zstd;
 };
 
 ChunkSerializer::ChunkSerializer() : impl_(std::make_unique<Impl>()) {}
@@ -93,8 +93,8 @@ std::vector<uint8_t> ChunkSerializer::serialize(const Chunk& chunk) const {
 
     // Compress if needed
     std::vector<uint8_t> payload;
-    if (impl_->compression == CompressionType::Zlib) {
-        payload = compress_zlib(raw_data);
+    if (impl_->compression == CompressionType::Zstd) {
+        payload = compress_zstd(raw_data);
         if (payload.empty() && !raw_data.empty()) {
             // Compression failed, fall back to uncompressed
             header.compression_type = 0;
@@ -138,8 +138,8 @@ bool ChunkSerializer::deserialize(Chunk& chunk, std::span<const uint8_t> data) c
 
     // Decompress if needed
     std::vector<uint8_t> raw_data;
-    if (header.compression_type == static_cast<uint8_t>(CompressionType::Zlib)) {
-        raw_data = decompress_zlib(payload, header.uncompressed_size);
+    if (header.compression_type == static_cast<uint8_t>(CompressionType::Zstd)) {
+        raw_data = decompress_zstd(payload, header.uncompressed_size);
         if (raw_data.empty() && header.uncompressed_size > 0) {
             REALCRAFT_LOG_ERROR(core::log_category::WORLD, "Failed to decompress chunk data");
             return false;

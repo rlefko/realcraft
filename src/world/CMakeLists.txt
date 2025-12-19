@@ -21,7 +21,7 @@ target_link_libraries(realcraft_world
         realcraft::core
     PRIVATE
         spdlog::spdlog
-        ZLIB::ZLIB
+        $<IF:$<TARGET_EXISTS:zstd::libzstd_static>,zstd::libzstd_static,zstd::libzstd_shared>
         glm::glm
 )
 

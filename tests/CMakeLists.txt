@@ -46,6 +46,7 @@ add_executable(realcraft_world_tests
     unit/world/block_test.cpp
     unit/world/chunk_data_test.cpp
     unit/world/chunk_test.cpp
+    unit/world/serialization_test.cpp
 )
 
 target_link_libraries(realcraft_world_tests

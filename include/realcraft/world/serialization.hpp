@@ -35,9 +35,9 @@ struct ChunkFileHeader {
     uint32_t version = CHUNK_FORMAT_VERSION;
     int32_t chunk_x = 0;
     int32_t chunk_z = 0;
-    uint32_t compressed_size = 0;    // Size after zlib compression
+    uint32_t compressed_size = 0;    // Size after compression
     uint32_t uncompressed_size = 0;  // Original data size
-    uint8_t compression_type = 1;    // 0=none, 1=zlib
+    uint8_t compression_type = 1;    // 0=none, 1=zstd
     uint8_t reserved[7] = {};
 };
 static_assert(sizeof(ChunkFileHeader) == 32, "ChunkFileHeader must be 32 bytes");
@@ -65,8 +65,8 @@ static_assert(sizeof(RegionChunkEntry) == 8, "RegionChunkEntry must be 8 bytes")
 
 enum class CompressionType : uint8_t {
     None = 0,
-    Zlib = 1,
-    // Future: LZ4 = 2, Zstd = 3
+    Zstd = 1,
+    // Legacy: Zlib = 2 (for backwards compatibility if needed)
 };
 
 // ============================================================================

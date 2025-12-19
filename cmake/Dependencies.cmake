@@ -13,9 +13,9 @@ message(STATUS "Found spdlog")
 find_package(nlohmann_json CONFIG REQUIRED)
 message(STATUS "Found nlohmann_json")
 
-# Compression (zlib) - for chunk serialization
-find_package(ZLIB REQUIRED)
-message(STATUS "Found ZLIB")
+# Compression (zstd) - for chunk serialization
+find_package(zstd CONFIG REQUIRED)
+message(STATUS "Found zstd")
 
 # Testing (Google Test)
 if(REALCRAFT_BUILD_TESTS)
