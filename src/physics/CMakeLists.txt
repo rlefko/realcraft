@@ -1,0 +1,38 @@
+# src/physics/CMakeLists.txt
+# Physics subsystem library
+
+set(PHYSICS_SOURCES
+    colliders.cpp
+    chunk_collider.cpp
+    physics_world.cpp
+    ray_caster.cpp
+)
+
+# Create static library
+add_library(realcraft_physics STATIC ${PHYSICS_SOURCES})
+
+# Link dependencies
+target_link_libraries(realcraft_physics
+    PUBLIC
+        realcraft::world
+        realcraft::core
+    PRIVATE
+        spdlog::spdlog
+        glm::glm
+        ${BULLET_LIBRARIES}
+)
+
+# Include directories
+target_include_directories(realcraft_physics
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${BULLET_INCLUDE_DIRS}
+)
+
+# Apply compiler settings
+realcraft_configure_target(realcraft_physics)
+
+# Alias for cleaner CMake usage
+add_library(realcraft::physics ALIAS realcraft_physics)

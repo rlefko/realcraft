@@ -7,6 +7,7 @@
 #include <realcraft/graphics/command_buffer.hpp>
 #include <realcraft/graphics/swap_chain.hpp>
 #include <realcraft/graphics/types.hpp>
+#include <realcraft/physics/physics_world.hpp>
 #include <realcraft/platform/input.hpp>
 #include <realcraft/rendering/render_system.hpp>
 #include <realcraft/world/world_manager.hpp>
@@ -117,6 +118,20 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     }
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Render System: OK");
 
+    // Initialize Physics World
+    physics::PhysicsConfig physics_config;
+    physics_config.gravity = glm::dvec3(0.0, -9.81, 0.0);
+    physics_config.fixed_timestep = 1.0 / 60.0;
+
+    physics::PhysicsWorld physics_world;
+    if (!physics_world.initialize(&world_manager, physics_config)) {
+        REALCRAFT_LOG_ERROR(core::log_category::ENGINE, "Failed to initialize Physics World");
+        render_system.shutdown();
+        world_manager.shutdown();
+        return 1;
+    }
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Physics World: OK");
+
     // Set initial camera position (above ground, looking around)
     render_system.get_camera().set_position({0.0, 80.0, 0.0});
     render_system.get_camera().set_rotation(-90.0f, -20.0f);
@@ -136,7 +151,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  P - Pause/resume day-night cycle");
 
     // Fixed update callback (60 Hz physics)
-    engine.set_fixed_update_callback([&render_system](double dt) { render_system.fixed_update(dt); });
+    engine.set_fixed_update_callback([&render_system, &physics_world](double dt) {
+        physics_world.fixed_update(dt);
+        render_system.fixed_update(dt);
+    });
 
     // Variable update callback (every frame)
     engine.set_update_callback([&engine, &world_manager, &render_system](double dt) {
@@ -232,6 +250,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     engine.run();
 
     // Cleanup
+    physics_world.shutdown();
     render_system.shutdown();
     world_manager.shutdown();
 

@@ -371,27 +371,27 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 5: Physics Engine `[ ]`
+## Phase 5: Physics Engine `[~]`
 
 **Goal:** Implement collision, rigid body dynamics, and structural integrity
 
-### Milestone 5.1: Collision Detection `[Medium]`
+### Milestone 5.1: Collision Detection `[Medium]` `[x]`
 
-- [ ] Implement voxel collision mesh
-  - [ ] Generate collision shapes from chunks
-  - [ ] Optimize for static terrain
-  - [ ] Update on block changes
-- [ ] Implement collider types
-  - [ ] AABB colliders
-  - [ ] Capsule colliders (player, entities)
-  - [ ] Convex hull colliders (debris)
-- [ ] Implement ray casting
-  - [ ] Ray-voxel intersection
-  - [ ] Hit information (position, normal, block)
-  - [ ] Ray length limits
-- [ ] Implement broad-phase acceleration
-  - [ ] Spatial partitioning (octree)
-  - [ ] Chunk-based culling
+- [x] Implement voxel collision mesh
+  - [x] Generate collision shapes from chunks
+  - [x] Optimize for static terrain
+  - [x] Update on block changes
+- [x] Implement collider types
+  - [x] AABB colliders
+  - [x] Capsule colliders (player, entities)
+  - [x] Convex hull colliders (debris)
+- [x] Implement ray casting
+  - [x] Ray-voxel intersection
+  - [x] Hit information (position, normal, block)
+  - [x] Ray length limits
+- [x] Implement broad-phase acceleration
+  - [x] Spatial partitioning (octree)
+  - [x] Chunk-based culling
 
 ### Milestone 5.2: Rigid Body Dynamics `[Medium]`
 

@@ -101,3 +101,32 @@ target_include_directories(realcraft_rendering_tests
 
 realcraft_configure_target(realcraft_rendering_tests)
 gtest_discover_tests(realcraft_rendering_tests)
+
+# Physics unit tests
+add_executable(realcraft_physics_tests
+    unit/physics/types_test.cpp
+    unit/physics/colliders_test.cpp
+    unit/physics/ray_caster_test.cpp
+    unit/physics/chunk_collider_test.cpp
+    unit/physics/physics_world_test.cpp
+)
+
+target_link_libraries(realcraft_physics_tests
+    PRIVATE
+        realcraft::physics
+        realcraft::world
+        realcraft::core
+        GTest::gtest
+        GTest::gtest_main
+        glm::glm
+        ${BULLET_LIBRARIES}
+)
+
+target_include_directories(realcraft_physics_tests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${BULLET_INCLUDE_DIRS}
+)
+
+realcraft_configure_target(realcraft_physics_tests)
+gtest_discover_tests(realcraft_physics_tests)
