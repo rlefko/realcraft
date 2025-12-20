@@ -3,12 +3,15 @@
 
 #include <gtest/gtest.h>
 
+#include <realcraft/world/biome.hpp>
 #include <realcraft/world/block.hpp>
 #include <realcraft/world/chunk.hpp>
+#include <realcraft/world/climate.hpp>
 #include <realcraft/world/terrain_generator.hpp>
 
 #include <atomic>
 #include <cmath>
+#include <set>
 #include <thread>
 #include <vector>
 
@@ -17,7 +20,10 @@ namespace {
 
 class TerrainGeneratorTest : public ::testing::Test {
 protected:
-    void SetUp() override { BlockRegistry::instance().register_defaults(); }
+    void SetUp() override {
+        BlockRegistry::instance().register_defaults();
+        BiomeRegistry::instance().register_defaults();
+    }
 };
 
 // Test: Same seed produces same height (deterministic)
@@ -374,6 +380,188 @@ TEST_F(TerrainGeneratorTest, LargeCoordinates) {
 
     // Heights should still be deterministic at large coordinates
     EXPECT_EQ(height, gen.get_height(large_x, large_z));
+}
+
+// ============================================================================
+// Biome System Tests
+// ============================================================================
+
+// Test: Chunk has biome_id set after generation
+TEST_F(TerrainGeneratorTest, ChunkHasBiomeId) {
+    TerrainConfig config;
+    config.seed = 12345;
+    config.biome_system.enabled = true;
+    TerrainGenerator gen(config);
+
+    ChunkDesc desc;
+    desc.position = ChunkPos(0, 0);
+    Chunk chunk(desc);
+
+    gen.generate(chunk);
+
+    // biome_id should be set (may be any valid biome)
+    uint8_t biome_id = chunk.get_metadata().biome_id;
+    EXPECT_LT(biome_id, static_cast<uint8_t>(BiomeType::Count));
+}
+
+// Test: get_biome returns valid biome
+TEST_F(TerrainGeneratorTest, GetBiomeReturnsValid) {
+    TerrainConfig config;
+    config.seed = 12345;
+    config.biome_system.enabled = true;
+    TerrainGenerator gen(config);
+
+    for (int i = 0; i < 100; ++i) {
+        BiomeType biome = gen.get_biome(i * 100, i * 100);
+        EXPECT_LT(static_cast<size_t>(biome), BIOME_COUNT)
+            << "Invalid biome at sample " << i;
+    }
+}
+
+// Test: get_climate returns valid values
+TEST_F(TerrainGeneratorTest, GetClimateReturnsValid) {
+    TerrainConfig config;
+    config.seed = 12345;
+    config.biome_system.enabled = true;
+    TerrainGenerator gen(config);
+
+    for (int i = 0; i < 50; ++i) {
+        ClimateSample sample = gen.get_climate(i * 200, i * 150);
+
+        EXPECT_GE(sample.temperature, 0.0f);
+        EXPECT_LE(sample.temperature, 1.0f);
+        EXPECT_GE(sample.humidity, 0.0f);
+        EXPECT_LE(sample.humidity, 1.0f);
+        EXPECT_LT(static_cast<size_t>(sample.biome), BIOME_COUNT);
+    }
+}
+
+// Test: get_biome_blend returns valid blend
+TEST_F(TerrainGeneratorTest, GetBiomeBlendReturnsValid) {
+    TerrainConfig config;
+    config.seed = 12345;
+    config.biome_system.enabled = true;
+    TerrainGenerator gen(config);
+
+    for (int i = 0; i < 50; ++i) {
+        BiomeBlend blend = gen.get_biome_blend(i * 200, i * 150);
+
+        EXPECT_LT(static_cast<size_t>(blend.primary_biome), BIOME_COUNT);
+        EXPECT_LT(static_cast<size_t>(blend.secondary_biome), BIOME_COUNT);
+        EXPECT_GE(blend.blend_factor, 0.0f);
+        EXPECT_LE(blend.blend_factor, 1.0f);
+    }
+}
+
+// Test: Biome system disabled returns default biome
+TEST_F(TerrainGeneratorTest, BiomeSystemDisabledReturnsDefault) {
+    TerrainConfig config;
+    config.seed = 12345;
+    config.biome_system.enabled = false;
+    TerrainGenerator gen(config);
+
+    BiomeType biome = gen.get_biome(0, 0);
+    EXPECT_EQ(biome, BiomeType::Plains);
+
+    ClimateSample sample = gen.get_climate(0, 0);
+    EXPECT_FLOAT_EQ(sample.temperature, 0.5f);
+    EXPECT_FLOAT_EQ(sample.humidity, 0.5f);
+    EXPECT_EQ(sample.biome, BiomeType::Plains);
+}
+
+// Test: Multiple biome types are generated across the world
+TEST_F(TerrainGeneratorTest, MultipleBiomesGenerated) {
+    TerrainConfig config;
+    config.seed = 42;
+    config.biome_system.enabled = true;
+    TerrainGenerator gen(config);
+
+    std::set<BiomeType> found_biomes;
+
+    // Sample across a large area
+    for (int x = -5000; x <= 5000; x += 500) {
+        for (int z = -5000; z <= 5000; z += 500) {
+            BiomeType biome = gen.get_biome(x, z);
+            found_biomes.insert(biome);
+        }
+    }
+
+    // Should find at least 3 different biome types
+    EXPECT_GE(found_biomes.size(), 3u)
+        << "Expected to find multiple biome types across world";
+}
+
+// Test: Desert chunks have sand surface
+TEST_F(TerrainGeneratorTest, DesertHasSandSurface) {
+    TerrainConfig config;
+    config.seed = 42;
+    config.biome_system.enabled = true;
+    TerrainGenerator gen(config);
+
+    BlockId sand_id = BlockRegistry::instance().sand_id();
+
+    // Find a desert location by sampling
+    int64_t desert_x = 0, desert_z = 0;
+    bool found_desert = false;
+
+    for (int x = 0; x < 10000 && !found_desert; x += 100) {
+        for (int z = 0; z < 10000 && !found_desert; z += 100) {
+            if (gen.get_biome(x, z) == BiomeType::Desert) {
+                desert_x = x;
+                desert_z = z;
+                found_desert = true;
+            }
+        }
+    }
+
+    if (!found_desert) {
+        GTEST_SKIP() << "Could not find desert biome in test area";
+    }
+
+    // Generate chunk at desert location
+    ChunkPos chunk_pos(static_cast<int>(desert_x / CHUNK_SIZE_X),
+                       static_cast<int>(desert_z / CHUNK_SIZE_Z));
+    ChunkDesc desc;
+    desc.position = chunk_pos;
+    Chunk chunk(desc);
+
+    gen.generate(chunk);
+
+    // Check that surface blocks are sand
+    bool found_sand = false;
+    for (int x = 0; x < CHUNK_SIZE_X && !found_sand; ++x) {
+        for (int z = 0; z < CHUNK_SIZE_Z && !found_sand; ++z) {
+            // Find the surface (highest non-air block)
+            for (int y = CHUNK_SIZE_Y - 1; y >= 0; --y) {
+                BlockId block = chunk.get_block(LocalBlockPos(x, y, z));
+                if (block != BLOCK_AIR) {
+                    if (block == sand_id) {
+                        found_sand = true;
+                    }
+                    break;  // Stop at first non-air
+                }
+            }
+        }
+    }
+
+    EXPECT_TRUE(found_sand) << "Expected sand blocks in desert chunk";
+}
+
+// Test: Biome queries are deterministic
+TEST_F(TerrainGeneratorTest, BiomeQueriesDeterministic) {
+    TerrainConfig config;
+    config.seed = 12345;
+    config.biome_system.enabled = true;
+    TerrainGenerator gen1(config);
+    TerrainGenerator gen2(config);
+
+    for (int i = 0; i < 100; ++i) {
+        int64_t x = i * 100 - 5000;
+        int64_t z = i * 50 - 2500;
+
+        EXPECT_EQ(gen1.get_biome(x, z), gen2.get_biome(x, z))
+            << "Biome mismatch at (" << x << ", " << z << ")";
+    }
 }
 
 }  // namespace

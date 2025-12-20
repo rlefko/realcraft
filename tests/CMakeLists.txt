@@ -42,12 +42,14 @@ gtest_discover_tests(realcraft_platform_tests)
 
 # World unit tests
 add_executable(realcraft_world_tests
-    unit/world/types_test.cpp
+    unit/world/biome_test.cpp
     unit/world/block_test.cpp
     unit/world/chunk_data_test.cpp
     unit/world/chunk_test.cpp
+    unit/world/climate_test.cpp
     unit/world/serialization_test.cpp
     unit/world/terrain_generator_test.cpp
+    unit/world/types_test.cpp
 )
 
 target_link_libraries(realcraft_world_tests

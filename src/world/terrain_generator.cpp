@@ -4,7 +4,9 @@
 #include <FastNoise/FastNoise.h>
 #include <algorithm>
 #include <cmath>
+#include <realcraft/world/biome.hpp>
 #include <realcraft/world/block.hpp>
+#include <realcraft/world/climate.hpp>
 #include <realcraft/world/terrain_generator.hpp>
 #include <utility>
 
@@ -24,6 +26,9 @@ struct TerrainGenerator::Impl {
     FastNoise::SmartNode<FastNoise::Generator> detail_node;
     FastNoise::SmartNode<FastNoise::Generator> domain_warp_node;
     FastNoise::SmartNode<FastNoise::Generator> density_node;
+
+    // Climate map for biome determination (thread-safe)
+    std::unique_ptr<ClimateMap> climate_map;
 
     void build_nodes() {
         // Continental terrain (large scale shapes using FBm)
@@ -73,6 +78,15 @@ struct TerrainGenerator::Impl {
             density_fractal->SetGain(config.density.gain);
             density_fractal->SetLacunarity(config.density.lacunarity);
             density_node = density_fractal;
+        }
+
+        // Climate map for biome determination
+        if (config.biome_system.enabled) {
+            ClimateConfig climate_cfg = config.biome_system.climate;
+            climate_cfg.seed = config.seed;  // Use same seed as terrain
+            climate_map = std::make_unique<ClimateMap>(climate_cfg);
+        } else {
+            climate_map.reset();
         }
     }
 
@@ -182,12 +196,15 @@ TerrainGenerator& TerrainGenerator::operator=(TerrainGenerator&&) noexcept = def
 void TerrainGenerator::generate(Chunk& chunk) const {
     auto lock = chunk.write_lock();
 
-    const auto& registry = BlockRegistry::instance();
-    const BlockId stone_id = registry.stone_id();
-    const BlockId dirt_id = registry.dirt_id();
-    const BlockId grass_id = registry.grass_id();
-    const BlockId water_id = registry.water_id();
-    const BlockId sand_id = registry.sand_id();
+    const auto& block_registry = BlockRegistry::instance();
+    const auto& biome_registry = BiomeRegistry::instance();
+
+    // Fallback block IDs (used when biome system is disabled)
+    const BlockId fallback_stone_id = block_registry.stone_id();
+    const BlockId fallback_dirt_id = block_registry.dirt_id();
+    const BlockId fallback_grass_id = block_registry.grass_id();
+    const BlockId fallback_sand_id = block_registry.sand_id();
+    const BlockId water_id = block_registry.water_id();
 
     const ChunkPos chunk_pos = chunk.get_position();
     const int64_t base_x = static_cast<int64_t>(chunk_pos.x) * CHUNK_SIZE_X;
@@ -201,12 +218,43 @@ void TerrainGenerator::generate(Chunk& chunk) const {
         }
     }
 
+    // Track biome at center of chunk for metadata
+    BiomeType chunk_biome = BiomeType::Plains;
+    const int center_x = CHUNK_SIZE_X / 2;
+    const int center_z = CHUNK_SIZE_Z / 2;
+
     // Generate blocks column by column
     for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
         for (int x = 0; x < CHUNK_SIZE_X; ++x) {
             const int32_t surface_height = heights[static_cast<size_t>(z * CHUNK_SIZE_X + x)];
             const int64_t world_x = base_x + x;
             const int64_t world_z = base_z + z;
+
+            // Get biome and block palette for this column
+            BiomeBlockPalette palette;
+            BiomeType biome = BiomeType::Plains;
+
+            if (impl_->climate_map) {
+                biome = impl_->climate_map->get_biome(world_x, world_z, static_cast<float>(surface_height));
+                palette = biome_registry.get_palette(biome);
+
+                // Handle invalid palette entries by using fallback blocks
+                if (palette.surface_block == BLOCK_INVALID) palette.surface_block = fallback_grass_id;
+                if (palette.subsurface_block == BLOCK_INVALID) palette.subsurface_block = fallback_dirt_id;
+                if (palette.underwater_block == BLOCK_INVALID) palette.underwater_block = fallback_sand_id;
+                if (palette.stone_block == BLOCK_INVALID) palette.stone_block = fallback_stone_id;
+
+                // Record center biome for chunk metadata
+                if (x == center_x && z == center_z) {
+                    chunk_biome = biome;
+                }
+            } else {
+                // Biome system disabled - use fallback palette
+                palette.surface_block = fallback_grass_id;
+                palette.subsurface_block = fallback_dirt_id;
+                palette.underwater_block = fallback_sand_id;
+                palette.stone_block = fallback_stone_id;
+            }
 
             for (int y = 0; y < CHUNK_SIZE_Y; ++y) {
                 BlockId block_id = BLOCK_AIR;
@@ -218,24 +266,21 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                     // Solid block - determine type based on depth
                     if (y == 0) {
                         // Bottom layer - could be bedrock in future
-                        block_id = stone_id;
+                        block_id = palette.stone_block;
                     } else if (y < surface_height - impl_->config.dirt_depth) {
                         // Deep underground - stone
-                        block_id = stone_id;
+                        block_id = palette.stone_block;
                     } else if (y < surface_height) {
-                        // Near surface - dirt layer
-                        block_id = dirt_id;
+                        // Near surface - subsurface layer (dirt)
+                        block_id = palette.subsurface_block;
                     } else if (y == surface_height) {
                         // Surface block - depends on height relative to sea level
-                        if (surface_height < impl_->config.sea_level) {
-                            // Below sea level - sand (underwater beach/lake bed)
-                            block_id = sand_id;
-                        } else if (surface_height == impl_->config.sea_level) {
-                            // At sea level - sand (beach)
-                            block_id = sand_id;
+                        if (surface_height <= impl_->config.sea_level) {
+                            // At or below sea level - underwater block (sand)
+                            block_id = palette.underwater_block;
                         } else {
-                            // Above sea level - grass
-                            block_id = grass_id;
+                            // Above sea level - surface block (grass)
+                            block_id = palette.surface_block;
                         }
                     }
                 } else if (y <= impl_->config.sea_level && y > surface_height) {
@@ -251,6 +296,8 @@ void TerrainGenerator::generate(Chunk& chunk) const {
         }
     }
 
+    // Store biome in chunk metadata
+    chunk.get_metadata_mut().biome_id = static_cast<uint8_t>(chunk_biome);
     chunk.get_metadata_mut().has_been_generated = true;
 }
 
@@ -290,6 +337,39 @@ void TerrainGenerator::set_config(const TerrainConfig& config) {
 
 void TerrainGenerator::rebuild_nodes() {
     impl_->build_nodes();
+}
+
+BiomeType TerrainGenerator::get_biome(int64_t world_x, int64_t world_z) const {
+    if (!impl_->climate_map) {
+        return BiomeType::Plains;
+    }
+    int32_t height = impl_->compute_height(world_x, world_z);
+    return impl_->climate_map->get_biome(world_x, world_z, static_cast<float>(height));
+}
+
+ClimateSample TerrainGenerator::get_climate(int64_t world_x, int64_t world_z) const {
+    if (!impl_->climate_map) {
+        ClimateSample sample;
+        sample.temperature = 0.5f;
+        sample.humidity = 0.5f;
+        sample.biome = BiomeType::Plains;
+        return sample;
+    }
+    int32_t height = impl_->compute_height(world_x, world_z);
+    return impl_->climate_map->sample(world_x, world_z, static_cast<float>(height));
+}
+
+BiomeBlend TerrainGenerator::get_biome_blend(int64_t world_x, int64_t world_z) const {
+    if (!impl_->climate_map) {
+        BiomeBlend blend;
+        blend.primary_biome = BiomeType::Plains;
+        blend.secondary_biome = BiomeType::Plains;
+        blend.blend_factor = 0.0f;
+        blend.blended_height = BiomeHeightModifiers{};
+        return blend;
+    }
+    int32_t height = impl_->compute_height(world_x, world_z);
+    return impl_->climate_map->sample_blended(world_x, world_z, static_cast<float>(height));
 }
 
 }  // namespace realcraft::world
