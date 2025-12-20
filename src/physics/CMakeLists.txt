@@ -8,6 +8,8 @@ set(PHYSICS_SOURCES
     player_controller.cpp
     ray_caster.cpp
     rigid_body.cpp
+    structural_integrity.cpp
+    support_graph.cpp
 )
 
 # Create static library

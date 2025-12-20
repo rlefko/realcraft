@@ -433,22 +433,22 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ### Milestone 5.4: Structural Integrity System `[High]`
 
-- [ ] Implement block connectivity graph
-  - [ ] Track connected blocks
-  - [ ] Efficient graph updates
-  - [ ] Connection types (face, edge, corner)
-- [ ] Implement support propagation
-  - [ ] Support from ground
-  - [ ] Support transfer through blocks
-  - [ ] Support distance limits
-- [ ] Implement material properties
-  - [ ] Weight per block type
-  - [ ] Strength/support capacity
-  - [ ] Brittleness
-- [ ] Implement collapse detection
-  - [ ] Check on block removal
-  - [ ] Identify unsupported clusters
-  - [ ] Cascade collapse handling
+- [x] Implement block connectivity graph
+  - [x] Track connected blocks
+  - [x] Efficient graph updates
+  - [x] Connection types (face, edge, corner)
+- [x] Implement support propagation
+  - [x] Support from ground
+  - [x] Support transfer through blocks
+  - [x] Support distance limits
+- [x] Implement material properties
+  - [x] Weight per block type
+  - [x] Strength/support capacity
+  - [x] Brittleness
+- [x] Implement collapse detection
+  - [x] Check on block removal
+  - [x] Identify unsupported clusters
+  - [x] Cascade collapse handling
 
 ### Milestone 5.5: Debris & Destruction `[High]`
 

@@ -7,6 +7,7 @@
 #include "colliders.hpp"
 #include "ray_caster.hpp"
 #include "rigid_body.hpp"
+#include "structural_integrity.hpp"
 #include "types.hpp"
 
 #include <functional>
@@ -162,6 +163,13 @@ public:
     };
 
     [[nodiscard]] DebugStats get_stats() const;
+
+    // ========================================================================
+    // Structural Integrity
+    // ========================================================================
+
+    [[nodiscard]] StructuralIntegritySystem* get_structural_integrity();
+    [[nodiscard]] const StructuralIntegritySystem* get_structural_integrity() const;
 
 private:
     struct Impl;
