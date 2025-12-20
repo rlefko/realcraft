@@ -179,83 +179,83 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 3: Basic Rendering Pipeline `[ ]`
+## Phase 3: Basic Rendering Pipeline `[x]`
 
 **Goal:** Implement rasterized voxel rendering as foundation before path tracing
 
-### Milestone 3.1: Voxel Mesh Generation `[Medium]`
+### Milestone 3.1: Voxel Mesh Generation `[Medium]` `[x]`
 
-- [ ] Implement naive mesh generation
-  - [ ] Generate quads for exposed faces
-  - [ ] Face normal calculation
-  - [ ] UV coordinate generation
-- [ ] Implement greedy meshing
-  - [ ] Merge coplanar adjacent faces
-  - [ ] Reduce vertex/triangle count
-  - [ ] Handle block type boundaries
-- [ ] Implement hidden face culling
-  - [ ] Skip faces between solid blocks
-  - [ ] Handle transparent block adjacency
-  - [ ] Cross-chunk face culling
-- [ ] Implement mesh updates
-  - [ ] Incremental mesh updates on block change
-  - [ ] Batch updates for efficiency
-  - [ ] Background mesh generation
-- [ ] Implement mesh LOD
+- [x] Implement naive mesh generation
+  - [x] Generate quads for exposed faces
+  - [x] Face normal calculation
+  - [x] UV coordinate generation
+- [x] Implement greedy meshing
+  - [x] Merge coplanar adjacent faces
+  - [x] Reduce vertex/triangle count
+  - [x] Handle block type boundaries
+- [x] Implement hidden face culling
+  - [x] Skip faces between solid blocks
+  - [x] Handle transparent block adjacency
+  - [x] Cross-chunk face culling
+- [x] Implement mesh updates
+  - [x] Incremental mesh updates on block change
+  - [x] Batch updates for efficiency
+  - [x] Background mesh generation
+- [ ] Implement mesh LOD (deferred)
   - [ ] Reduced detail for distant chunks
   - [ ] LOD transition handling
 
-### Milestone 3.2: Basic Rasterization Pipeline `[Medium]`
+### Milestone 3.2: Basic Rasterization Pipeline `[Medium]` `[x]`
 
-- [ ] Implement vertex/fragment shaders
-  - [ ] Basic vertex transformation
-  - [ ] Texture sampling
-  - [ ] Basic lighting in fragment shader
-- [ ] Implement camera system
-  - [ ] First-person camera
-  - [ ] Free/spectator camera
-  - [ ] Camera matrices (view, projection)
-  - [ ] FOV settings
-- [ ] Implement frustum culling
-  - [ ] Extract frustum planes
-  - [ ] AABB-frustum intersection
-  - [ ] Per-chunk culling
-- [ ] Implement depth buffering
-  - [ ] Proper depth testing
-  - [ ] Handle transparent objects
+- [x] Implement vertex/fragment shaders
+  - [x] Basic vertex transformation
+  - [x] Texture sampling
+  - [x] Basic lighting in fragment shader
+- [x] Implement camera system
+  - [x] First-person camera
+  - [x] Free/spectator camera
+  - [x] Camera matrices (view, projection)
+  - [x] FOV settings
+- [x] Implement frustum culling
+  - [x] Extract frustum planes
+  - [x] AABB-frustum intersection
+  - [x] Per-chunk culling
+- [x] Implement depth buffering
+  - [x] Proper depth testing
+  - [x] Handle transparent objects
 
-### Milestone 3.3: Basic Lighting `[Medium]`
+### Milestone 3.3: Basic Lighting `[Medium]` `[x]`
 
-- [ ] Implement directional sunlight
-  - [ ] Sun direction from time of day
-  - [ ] Diffuse lighting calculation
-  - [ ] Basic specular highlights
-- [ ] Implement ambient occlusion
-  - [ ] Per-vertex AO from neighbor blocks
-  - [ ] Smooth AO interpolation
-- [ ] Implement day/night cycle
-  - [ ] Time system
-  - [ ] Sun/moon position
-  - [ ] Sky color transitions
-  - [ ] Light level changes
-- [ ] Implement basic shadow mapping
+- [x] Implement directional sunlight
+  - [x] Sun direction from time of day
+  - [x] Diffuse lighting calculation
+  - [x] Basic specular highlights
+- [x] Implement ambient occlusion
+  - [x] Per-vertex AO from neighbor blocks
+  - [x] Smooth AO interpolation
+- [x] Implement day/night cycle
+  - [x] Time system
+  - [x] Sun/moon position
+  - [x] Sky color transitions
+  - [x] Light level changes
+- [ ] Implement basic shadow mapping (deferred)
   - [ ] Directional shadow maps
   - [ ] Cascaded shadow maps for distance
   - [ ] Shadow filtering (PCF)
 
-### Milestone 3.4: Texture System `[Low]`
+### Milestone 3.4: Texture System `[Low]` `[x]`
 
-- [ ] Implement texture atlas
-  - [ ] Pack block textures into atlas
-  - [ ] Atlas coordinate calculation
-  - [ ] Mipmap generation
-- [ ] Implement texture coordinates
-  - [ ] Per-face UV mapping
-  - [ ] Texture rotation for variety
-- [ ] Implement basic PBR properties
-  - [ ] Albedo textures
-  - [ ] Normal maps
-  - [ ] Roughness/metallic values
+- [x] Implement texture atlas
+  - [x] Pack block textures into atlas
+  - [x] Atlas coordinate calculation
+  - [x] Mipmap generation
+- [x] Implement texture coordinates
+  - [x] Per-face UV mapping
+  - [x] Texture rotation for variety
+- [x] Implement basic PBR properties
+  - [x] Albedo textures
+  - [x] Normal maps (prepared, shader ready)
+  - [x] Roughness/metallic values (prepared, shader ready)
 
 ---
 

@@ -10,6 +10,12 @@ set(GRAPHICS_SOURCES
 # Create static library
 add_library(realcraft_graphics STATIC ${GRAPHICS_SOURCES})
 
+# Disable RTTI for shader_compiler.cpp since glslang is built without RTTI
+# This prevents linker errors for typeinfo symbols
+set_source_files_properties(shader_compiler.cpp PROPERTIES
+    COMPILE_FLAGS "-fno-rtti"
+)
+
 # Add platform-specific backend sources
 if(REALCRAFT_PLATFORM_MACOS)
     target_sources(realcraft_graphics PRIVATE
@@ -49,12 +55,17 @@ target_include_directories(realcraft_graphics
 )
 
 # Public dependencies (users of this library will need these)
+# Note: glslang and spirv libraries need to be PUBLIC because static library
+# linking requires all symbols to be available at final link time.
+# We must explicitly list glslang sub-components because they use LINK_ONLY
+# which doesn't propagate through static library chains.
 target_link_libraries(realcraft_graphics
     PUBLIC
         glm::glm
-    PRIVATE
-        spdlog::spdlog
         glslang::glslang
+        glslang::MachineIndependent
+        glslang::GenericCodeGen
+        glslang::OSDependent
         glslang::glslang-default-resource-limits
         glslang::SPIRV
         SPIRV-Tools-static
@@ -62,6 +73,8 @@ target_link_libraries(realcraft_graphics
         spirv-cross-glsl
         spirv-cross-msl
         spirv-cross-reflect
+    PRIVATE
+        spdlog::spdlog
 )
 
 # Platform-specific frameworks
