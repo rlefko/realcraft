@@ -29,9 +29,9 @@ TEST_F(ErosionContextTest, StoresAndRetrievesBorderData) {
     data.direction = HorizontalDirection::PosX;
     data.width = 32;
     data.depth = 16;
-    data.height_deltas.resize(data.width * data.depth, 1.0f);
-    data.sediment_values.resize(data.width * data.depth, 0.5f);
-    data.flow_values.resize(data.width * data.depth, 10.0f);
+    data.height_deltas.resize(static_cast<size_t>(data.width) * data.depth, 1.0f);
+    data.sediment_values.resize(static_cast<size_t>(data.width) * data.depth, 0.5f);
+    data.flow_values.resize(static_cast<size_t>(data.width) * data.depth, 10.0f);
 
     context.submit_border_data(data);
 
@@ -73,9 +73,9 @@ TEST_F(ErosionContextTest, AllDirectionsWork) {
         data.direction = static_cast<HorizontalDirection>(dir);
         data.width = 32;
         data.depth = 16;
-        data.height_deltas.resize(data.width * data.depth, static_cast<float>(dir + 1));
-        data.sediment_values.resize(data.width * data.depth, 0.0f);
-        data.flow_values.resize(data.width * data.depth, 0.0f);
+        data.height_deltas.resize(static_cast<size_t>(data.width) * data.depth, static_cast<float>(dir + 1));
+        data.sediment_values.resize(static_cast<size_t>(data.width) * data.depth, 0.0f);
+        data.flow_values.resize(static_cast<size_t>(data.width) * data.depth, 0.0f);
 
         context.submit_border_data(data);
     }
@@ -111,9 +111,9 @@ TEST_F(ErosionContextTest, ClearRemovesData) {
     data.direction = HorizontalDirection::PosX;
     data.width = 32;
     data.depth = 16;
-    data.height_deltas.resize(data.width * data.depth, 1.0f);
-    data.sediment_values.resize(data.width * data.depth, 0.0f);
-    data.flow_values.resize(data.width * data.depth, 0.0f);
+    data.height_deltas.resize(static_cast<size_t>(data.width) * data.depth, 1.0f);
+    data.sediment_values.resize(static_cast<size_t>(data.width) * data.depth, 0.0f);
+    data.flow_values.resize(static_cast<size_t>(data.width) * data.depth, 0.0f);
 
     context.submit_border_data(data);
     EXPECT_EQ(context.stored_chunk_count(), 1);
@@ -204,7 +204,7 @@ TEST_F(ErosionBorderExchangeTest, FlowImportAccumulates) {
     EXPECT_FLOAT_EQ(map.get_flow(5, kBorder + 5), 1.0f);
 
     // Import additional flow from neighbor
-    std::vector<float> imported_flow(kBorder * kChunkSize, 100.0f);
+    std::vector<float> imported_flow(static_cast<size_t>(kBorder) * kChunkSize, 100.0f);
     map.import_border_flow(HorizontalDirection::NegX, imported_flow);
 
     // NegX border should now have flow = 1 + 100 = 101
@@ -223,7 +223,7 @@ TEST_F(ErosionBorderExchangeTest, SedimentImportWorks) {
     EXPECT_FLOAT_EQ(map.get_sediment(5, kBorder + 5), 0.0f);
 
     // Import sediment data
-    std::vector<float> imported_sediment(kBorder * kChunkSize, 2.5f);
+    std::vector<float> imported_sediment(static_cast<size_t>(kBorder) * kChunkSize, 2.5f);
     map.import_border_sediment(HorizontalDirection::NegX, imported_sediment);
 
     // NegX border should have the imported sediment
