@@ -5,6 +5,7 @@ set(PHYSICS_SOURCES
     colliders.cpp
     chunk_collider.cpp
     physics_world.cpp
+    player_controller.cpp
     ray_caster.cpp
     rigid_body.cpp
 )

@@ -8,6 +8,7 @@
 #include <realcraft/graphics/swap_chain.hpp>
 #include <realcraft/graphics/types.hpp>
 #include <realcraft/physics/physics_world.hpp>
+#include <realcraft/physics/player_controller.hpp>
 #include <realcraft/platform/input.hpp>
 #include <realcraft/rendering/render_system.hpp>
 #include <realcraft/world/world_manager.hpp>
@@ -132,17 +133,43 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     }
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Physics World: OK");
 
-    // Set initial camera position (above ground, looking around)
-    render_system.get_camera().set_position({0.0, 80.0, 0.0});
+    // Initialize Player Controller
+    physics::PlayerControllerConfig player_config;
+    player_config.capsule_radius = 0.4;
+    player_config.capsule_height = 1.8;
+    player_config.eye_height = 1.6;
+    player_config.walk_speed = 4.3;
+    player_config.sprint_speed = 5.6;
+    player_config.jump_height = 1.25;
+    player_config.gravity = 32.0;
+
+    physics::PlayerController player_controller;
+    if (!player_controller.initialize(&physics_world, &world_manager, player_config)) {
+        REALCRAFT_LOG_ERROR(core::log_category::ENGINE, "Failed to initialize Player Controller");
+        physics_world.shutdown();
+        render_system.shutdown();
+        world_manager.shutdown();
+        return 1;
+    }
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Player Controller: OK");
+
+    // Set initial player position (above ground)
+    player_controller.set_position({0.0, 80.0, 0.0});
+
+    // Set initial camera rotation (looking forward)
     render_system.get_camera().set_rotation(-90.0f, -20.0f);
 
     // Set initial player position for chunk loading
     world_manager.set_player_position({0.0, 80.0, 0.0});
 
+    // Shared player input state (updated in update callback, used in fixed_update)
+    physics::PlayerInput player_input;
+
     // Log controls
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Controls:");
-    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  WASD - Move camera");
-    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Space/Shift - Fly up/down");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  WASD - Move player");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Space - Jump");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Ctrl - Sprint");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Mouse - Look around");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Click - Capture mouse");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  ESC - Release mouse / Exit");
@@ -151,13 +178,23 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  P - Pause/resume day-night cycle");
 
     // Fixed update callback (60 Hz physics)
-    engine.set_fixed_update_callback([&render_system, &physics_world](double dt) {
+    engine.set_fixed_update_callback([&render_system, &physics_world, &player_controller, &player_input](double dt) {
+        // Store previous state for interpolation
+        player_controller.store_previous_state();
+
+        // Update player physics
+        player_controller.fixed_update(dt, player_input);
+
+        // Reset jump just pressed (consumed by physics)
+        player_input.jump_just_pressed = false;
+
+        // Update physics world
         physics_world.fixed_update(dt);
         render_system.fixed_update(dt);
     });
 
     // Variable update callback (every frame)
-    engine.set_update_callback([&engine, &world_manager, &render_system](double dt) {
+    engine.set_update_callback([&engine, &world_manager, &render_system, &player_controller, &player_input](double dt) {
         auto* input = engine.get_input();
         auto* window = engine.get_window();
 
@@ -197,30 +234,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             }
         }
 
-        // Build camera movement input
-        glm::vec3 move_input(0.0f);
-        bool sprinting = input->is_key_pressed(platform::KeyCode::LeftControl);
-
-        // Movement
-        if (input->is_key_pressed(platform::KeyCode::W)) {
-            move_input.z += 1.0f;
-        }
-        if (input->is_key_pressed(platform::KeyCode::S)) {
-            move_input.z -= 1.0f;
-        }
-        if (input->is_key_pressed(platform::KeyCode::D)) {
-            move_input.x += 1.0f;
-        }
-        if (input->is_key_pressed(platform::KeyCode::A)) {
-            move_input.x -= 1.0f;
-        }
-        if (input->is_key_pressed(platform::KeyCode::Space)) {
-            move_input.y += 1.0f;
-        }
-        if (input->is_key_pressed(platform::KeyCode::LeftShift)) {
-            move_input.y -= 1.0f;
-        }
-
         // Mouse look (only when captured)
         if (input->is_mouse_captured()) {
             auto mouse_delta = input->get_mouse_delta();
@@ -229,12 +242,45 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
                                               static_cast<float>(mouse_delta.x) * sensitivity);
         }
 
-        // Apply camera movement
-        render_system.get_camera().process_movement(move_input, static_cast<float>(dt), sprinting);
+        // Build player movement input from WASD in camera space
+        glm::vec3 local_move(0.0f);
+        if (input->is_key_pressed(platform::KeyCode::W)) {
+            local_move.z += 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::S)) {
+            local_move.z -= 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::D)) {
+            local_move.x += 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::A)) {
+            local_move.x -= 1.0f;
+        }
+
+        // Transform local movement to world-space based on camera facing
+        glm::vec3 forward = render_system.get_camera().get_forward_horizontal();
+        glm::vec3 right = render_system.get_camera().get_right();
+
+        glm::vec3 world_move = forward * local_move.z + right * local_move.x;
+        if (glm::length(world_move) > 0.01f) {
+            world_move = glm::normalize(world_move);
+        }
+
+        // Update player input for physics
+        player_input.move_direction = world_move;
+        player_input.sprint_pressed = input->is_key_pressed(platform::KeyCode::LeftControl);
+        player_input.jump_pressed = input->is_key_pressed(platform::KeyCode::Space);
+        if (input->is_key_just_pressed(platform::KeyCode::Space)) {
+            player_input.jump_just_pressed = true;
+        }
+
+        // Sync camera position to interpolated player eye position
+        double interpolation = engine.get_game_loop()->get_interpolation();
+        glm::dvec3 eye_pos = player_controller.get_interpolated_eye_position(interpolation);
+        render_system.get_camera().set_position(eye_pos);
 
         // Update player position for chunk loading
-        auto camera_pos = render_system.get_camera().get_position();
-        world_manager.set_player_position(camera_pos);
+        world_manager.set_player_position(player_controller.get_position());
 
         // Update world (chunk loading/unloading)
         world_manager.update(dt);
@@ -250,6 +296,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     engine.run();
 
     // Cleanup
+    player_controller.shutdown();
     physics_world.shutdown();
     render_system.shutdown();
     world_manager.shutdown();
