@@ -6,6 +6,7 @@ set(PHYSICS_SOURCES
     chunk_collider.cpp
     physics_world.cpp
     ray_caster.cpp
+    rigid_body.cpp
 )
 
 # Create static library

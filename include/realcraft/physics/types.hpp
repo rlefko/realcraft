@@ -171,4 +171,44 @@ struct RayHit {
     return tmin >= 0.0 ? tmin : tmax;
 }
 
+// ============================================================================
+// Rigid Body Handle
+// ============================================================================
+
+using RigidBodyHandle = uint32_t;
+inline constexpr RigidBodyHandle INVALID_RIGID_BODY = 0;
+
+// ============================================================================
+// Motion Type
+// ============================================================================
+
+enum class MotionType : uint8_t {
+    Dynamic,    // Affected by forces, gravity, and collisions
+    Kinematic,  // Moved by code, affects dynamic bodies but unaffected by them
+    Static      // Never moves, infinite mass
+};
+
+// ============================================================================
+// Physics Material
+// ============================================================================
+
+struct PhysicsMaterial {
+    double friction = 0.5;          // Surface friction coefficient (0-1)
+    double restitution = 0.0;       // Bounciness (0 = no bounce, 1 = perfect bounce)
+    double linear_damping = 0.0;    // Linear velocity damping (air resistance)
+    double angular_damping = 0.05;  // Angular velocity damping
+
+    [[nodiscard]] static PhysicsMaterial default_material() { return PhysicsMaterial{}; }
+
+    [[nodiscard]] static PhysicsMaterial bouncy() { return PhysicsMaterial{0.5, 0.8, 0.0, 0.05}; }
+
+    [[nodiscard]] static PhysicsMaterial ice() { return PhysicsMaterial{0.05, 0.1, 0.0, 0.05}; }
+
+    [[nodiscard]] static PhysicsMaterial rubber() { return PhysicsMaterial{0.9, 0.7, 0.1, 0.1}; }
+
+    [[nodiscard]] static PhysicsMaterial metal() { return PhysicsMaterial{0.4, 0.3, 0.0, 0.02}; }
+
+    [[nodiscard]] static PhysicsMaterial wood() { return PhysicsMaterial{0.6, 0.2, 0.0, 0.05}; }
+};
+
 }  // namespace realcraft::physics
