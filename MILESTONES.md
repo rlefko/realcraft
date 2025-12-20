@@ -411,25 +411,25 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Interpolation for rendering
   - [x] Substep configuration
 
-### Milestone 5.3: Player Physics `[Medium]`
+### Milestone 5.3: Player Physics `[Medium]` `[x]`
 
-- [ ] Implement capsule controller
-  - [ ] Player collision shape
-  - [ ] Stair stepping
-  - [ ] Slope handling
-- [ ] Implement ground detection
-  - [ ] Ground contact check
-  - [ ] Ground normal
-  - [ ] Edge detection
-- [ ] Implement jump mechanics
-  - [ ] Jump impulse
-  - [ ] Variable jump height
-  - [ ] Coyote time (optional)
-- [ ] Implement movement physics
-  - [ ] Acceleration/deceleration
-  - [ ] Friction on surfaces
-  - [ ] Air control limits
-  - [ ] Swimming physics
+- [x] Implement capsule controller
+  - [x] Player collision shape
+  - [x] Stair stepping
+  - [x] Slope handling
+- [x] Implement ground detection
+  - [x] Ground contact check
+  - [x] Ground normal
+  - [x] Edge detection
+- [x] Implement jump mechanics
+  - [x] Jump impulse
+  - [x] Variable jump height
+  - [x] Coyote time (optional)
+- [x] Implement movement physics
+  - [x] Acceleration/deceleration
+  - [x] Friction on surfaces
+  - [x] Air control limits
+  - [x] Swimming physics
 
 ### Milestone 5.4: Structural Integrity System `[High]`
 
