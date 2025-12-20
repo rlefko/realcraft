@@ -1,6 +1,7 @@
 // RealCraft World System
 // erosion_context.cpp - Cross-chunk erosion context implementation
 
+#include <mutex>
 #include <realcraft/world/erosion_context.hpp>
 
 namespace realcraft::world {

@@ -336,9 +336,14 @@ TEST_F(ChunkTest, ConcurrentReadsAndWrites) {
     std::atomic<bool> running{true};
     std::atomic<int> read_count{0};
     std::atomic<int> write_count{0};
+    std::atomic<int> readers_ready{0};
 
     // Writer thread
     std::thread writer([&]() {
+        // Wait for all readers to be ready before starting writes
+        while (readers_ready.load() < 3) {
+            std::this_thread::yield();
+        }
         for (int i = 0; i < 100 && running; ++i) {
             chunk.set_block(LocalBlockPos(0, 0, 0), static_cast<BlockId>(i + 1));
             ++write_count;
@@ -350,6 +355,7 @@ TEST_F(ChunkTest, ConcurrentReadsAndWrites) {
     std::vector<std::thread> readers;
     for (int t = 0; t < 3; ++t) {
         readers.emplace_back([&]() {
+            ++readers_ready;  // Signal ready before entering loop
             while (running && write_count < 50) {
                 auto block = chunk.get_block(LocalBlockPos(0, 0, 0));
                 (void)block;  // Just verify we can read
