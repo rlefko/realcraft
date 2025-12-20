@@ -31,10 +31,15 @@ struct PhysicsWorld::Impl {
     std::unordered_map<world::ChunkPos, std::unique_ptr<ChunkCollider>> chunk_colliders;
     mutable std::mutex chunk_mutex;
 
-    // Dynamic colliders
+    // Dynamic colliders (collision-only objects)
     std::unordered_map<ColliderHandle, std::unique_ptr<Collider>> colliders;
     ColliderHandle next_handle = 1;
     mutable std::mutex collider_mutex;
+
+    // Rigid bodies (simulated physics objects)
+    std::unordered_map<RigidBodyHandle, std::unique_ptr<RigidBody>> rigid_bodies;
+    RigidBodyHandle next_rigid_body_handle = 1;
+    mutable std::mutex rigid_body_mutex;
 
     // Voxel ray caster
     VoxelRayCaster ray_caster;
@@ -44,6 +49,9 @@ struct PhysicsWorld::Impl {
 
     // Collision callback
     CollisionCallback collision_callback;
+
+    // Interpolation alpha for rendering
+    double interpolation_alpha = 0.0;
 
     // Stats
     double last_step_time_ms = 0.0;
@@ -95,6 +103,17 @@ struct PhysicsWorld::Impl {
             colliders.clear();
         }
 
+        // Remove all rigid bodies
+        {
+            std::lock_guard<std::mutex> lock(rigid_body_mutex);
+            for (auto& [handle, body] : rigid_bodies) {
+                if (dynamics_world && body->get_bullet_body()) {
+                    dynamics_world->removeRigidBody(body->get_bullet_body());
+                }
+            }
+            rigid_bodies.clear();
+        }
+
         // Destroy Bullet components in reverse order
         dynamics_world.reset();
         solver.reset();
@@ -104,6 +123,7 @@ struct PhysicsWorld::Impl {
     }
 
     ColliderHandle allocate_handle() { return next_handle++; }
+    RigidBodyHandle allocate_rigid_body_handle() { return next_rigid_body_handle++; }
 };
 
 // ============================================================================
@@ -167,26 +187,25 @@ bool PhysicsWorld::is_initialized() const {
     return impl_->initialized;
 }
 
-void PhysicsWorld::fixed_update([[maybe_unused]] double fixed_delta) {
+void PhysicsWorld::fixed_update(double fixed_delta) {
     if (!impl_->initialized || !impl_->dynamics_world) {
         return;
     }
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    // Update collider transforms in Bullet world
+    // Store previous transforms for all rigid bodies (for interpolation)
     {
-        std::lock_guard<std::mutex> lock(impl_->collider_mutex);
-        for (auto& [handle, collider] : impl_->colliders) {
-            auto* bullet_obj = collider->get_bullet_object();
-            if (bullet_obj) {
-                // Transform already updated via set_position/set_rotation on collider
-            }
+        std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+        for (auto& [handle, body] : impl_->rigid_bodies) {
+            body->store_previous_transform();
         }
     }
 
-    // Perform collision detection (no simulation step for collision-only phase)
-    impl_->dynamics_world->performDiscreteCollisionDetection();
+    // Step the physics simulation
+    // This applies gravity, forces, collision response, and constraint solving
+    impl_->dynamics_world->stepSimulation(static_cast<btScalar>(fixed_delta), impl_->config.max_substeps,
+                                          static_cast<btScalar>(impl_->config.fixed_timestep));
 
     // Process collision callbacks
     if (impl_->collision_callback) {
@@ -309,6 +328,70 @@ const Collider* PhysicsWorld::get_collider(ColliderHandle handle) const {
     std::lock_guard<std::mutex> lock(impl_->collider_mutex);
     auto it = impl_->colliders.find(handle);
     return (it != impl_->colliders.end()) ? it->second.get() : nullptr;
+}
+
+// ============================================================================
+// Rigid Body Management
+// ============================================================================
+
+RigidBodyHandle PhysicsWorld::create_rigid_body(const RigidBodyDesc& desc) {
+    if (!impl_->initialized) {
+        return INVALID_RIGID_BODY;
+    }
+
+    std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+
+    RigidBodyHandle handle = impl_->allocate_rigid_body_handle();
+    auto body = std::make_unique<RigidBody>(handle, desc);
+
+    // Add to Bullet world
+    impl_->dynamics_world->addRigidBody(body->get_bullet_body(), static_cast<int>(desc.collision_layer),
+                                        static_cast<int>(desc.collision_mask));
+
+    impl_->rigid_bodies[handle] = std::move(body);
+
+    REALCRAFT_LOG_DEBUG(core::log_category::PHYSICS, "Created rigid body {}", handle);
+
+    return handle;
+}
+
+void PhysicsWorld::destroy_rigid_body(RigidBodyHandle handle) {
+    if (!impl_->initialized || handle == INVALID_RIGID_BODY) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+
+    auto it = impl_->rigid_bodies.find(handle);
+    if (it != impl_->rigid_bodies.end()) {
+        impl_->dynamics_world->removeRigidBody(it->second->get_bullet_body());
+        impl_->rigid_bodies.erase(it);
+        REALCRAFT_LOG_DEBUG(core::log_category::PHYSICS, "Destroyed rigid body {}", handle);
+    }
+}
+
+RigidBody* PhysicsWorld::get_rigid_body(RigidBodyHandle handle) {
+    std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+    auto it = impl_->rigid_bodies.find(handle);
+    return (it != impl_->rigid_bodies.end()) ? it->second.get() : nullptr;
+}
+
+const RigidBody* PhysicsWorld::get_rigid_body(RigidBodyHandle handle) const {
+    std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+    auto it = impl_->rigid_bodies.find(handle);
+    return (it != impl_->rigid_bodies.end()) ? it->second.get() : nullptr;
+}
+
+// ============================================================================
+// Interpolation
+// ============================================================================
+
+void PhysicsWorld::set_interpolation_alpha(double alpha) {
+    impl_->interpolation_alpha = alpha;
+}
+
+double PhysicsWorld::get_interpolation_alpha() const {
+    return impl_->interpolation_alpha;
 }
 
 // ============================================================================
@@ -524,9 +607,19 @@ void PhysicsWorld::on_origin_shifted(const world::WorldBlockPos& old_origin, con
     impl_->origin_offset += delta;
 
     // Update all chunk collider transforms
-    std::lock_guard<std::mutex> lock(impl_->chunk_mutex);
-    for (auto& [pos, collider] : impl_->chunk_colliders) {
-        collider->set_world_offset(impl_->origin_offset);
+    {
+        std::lock_guard<std::mutex> lock(impl_->chunk_mutex);
+        for (auto& [pos, collider] : impl_->chunk_colliders) {
+            collider->set_world_offset(impl_->origin_offset);
+        }
+    }
+
+    // Update all rigid body positions
+    {
+        std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+        for (auto& [handle, body] : impl_->rigid_bodies) {
+            body->apply_origin_shift(delta);
+        }
     }
 
     REALCRAFT_LOG_DEBUG(core::log_category::PHYSICS, "Origin shifted, new offset: ({}, {}, {})", impl_->origin_offset.x,
@@ -563,6 +656,11 @@ PhysicsWorld::DebugStats PhysicsWorld::get_stats() const {
     {
         std::lock_guard<std::mutex> lock(impl_->collider_mutex);
         stats.active_colliders = impl_->colliders.size();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+        stats.active_rigid_bodies = impl_->rigid_bodies.size();
     }
 
     {

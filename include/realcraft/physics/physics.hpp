@@ -7,4 +7,5 @@
 #include "colliders.hpp"
 #include "physics_world.hpp"
 #include "ray_caster.hpp"
+#include "rigid_body.hpp"
 #include "types.hpp"

@@ -393,23 +393,23 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Spatial partitioning (octree)
   - [x] Chunk-based culling
 
-### Milestone 5.2: Rigid Body Dynamics `[Medium]`
+### Milestone 5.2: Rigid Body Dynamics `[Medium]` `[x]`
 
-- [ ] Integrate physics library (Bullet)
-  - [ ] World setup
-  - [ ] Collision configuration
-  - [ ] Solver configuration
-- [ ] Implement gravity and forces
-  - [ ] Global gravity
-  - [ ] Per-object forces
-  - [ ] Impulse application
-- [ ] Implement collision response
-  - [ ] Bounce/friction coefficients
-  - [ ] Material-based response
-- [ ] Implement fixed timestep simulation
-  - [ ] Accumulator pattern
-  - [ ] Interpolation for rendering
-  - [ ] Substep configuration
+- [x] Integrate physics library (Bullet)
+  - [x] World setup
+  - [x] Collision configuration
+  - [x] Solver configuration
+- [x] Implement gravity and forces
+  - [x] Global gravity
+  - [x] Per-object forces
+  - [x] Impulse application
+- [x] Implement collision response
+  - [x] Bounce/friction coefficients
+  - [x] Material-based response
+- [x] Implement fixed timestep simulation
+  - [x] Accumulator pattern
+  - [x] Interpolation for rendering
+  - [x] Substep configuration
 
 ### Milestone 5.3: Player Physics `[Medium]`
 

@@ -109,6 +109,7 @@ add_executable(realcraft_physics_tests
     unit/physics/ray_caster_test.cpp
     unit/physics/chunk_collider_test.cpp
     unit/physics/physics_world_test.cpp
+    unit/physics/rigid_body_test.cpp
 )
 
 target_link_libraries(realcraft_physics_tests

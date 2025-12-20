@@ -6,6 +6,7 @@
 #include "chunk_collider.hpp"
 #include "colliders.hpp"
 #include "ray_caster.hpp"
+#include "rigid_body.hpp"
 #include "types.hpp"
 
 #include <functional>
@@ -81,6 +82,22 @@ public:
     [[nodiscard]] const Collider* get_collider(ColliderHandle handle) const;
 
     // ========================================================================
+    // Rigid Body Management
+    // ========================================================================
+
+    [[nodiscard]] RigidBodyHandle create_rigid_body(const RigidBodyDesc& desc);
+    void destroy_rigid_body(RigidBodyHandle handle);
+    [[nodiscard]] RigidBody* get_rigid_body(RigidBodyHandle handle);
+    [[nodiscard]] const RigidBody* get_rigid_body(RigidBodyHandle handle) const;
+
+    // ========================================================================
+    // Interpolation (for rendering between physics steps)
+    // ========================================================================
+
+    void set_interpolation_alpha(double alpha);
+    [[nodiscard]] double get_interpolation_alpha() const;
+
+    // ========================================================================
     // Ray Casting
     // ========================================================================
 
@@ -138,6 +155,7 @@ public:
 
     struct DebugStats {
         size_t active_colliders = 0;
+        size_t active_rigid_bodies = 0;
         size_t chunk_colliders = 0;
         size_t total_collision_shapes = 0;
         double last_step_time_ms = 0.0;
