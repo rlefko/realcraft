@@ -319,24 +319,24 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Delta formation
   - [x] Sediment block types
 
-### Milestone 4.4: Cave Generation `[Medium]`
+### Milestone 4.4: Cave Generation `[Medium]` `[x]`
 
-- [ ] Implement 3D cave noise
-  - [ ] Perlin worms algorithm
-  - [ ] Cellular automata alternative
-  - [ ] Cave density control
-- [ ] Implement cave system features
-  - [ ] Cave entrance placement
-  - [ ] Chamber generation
-  - [ ] Tunnel connections
-- [ ] Implement underground water
-  - [ ] Water table level
-  - [ ] Underground rivers
-  - [ ] Flooded caves
-- [ ] Implement cave decoration
-  - [ ] Stalactites and stalagmites
-  - [ ] Crystal formations
-  - [ ] Moss/fungi in damp areas
+- [x] Implement 3D cave noise
+  - [x] Perlin worms algorithm
+  - [x] Cellular automata alternative
+  - [x] Cave density control
+- [x] Implement cave system features
+  - [x] Cave entrance placement
+  - [x] Chamber generation
+  - [x] Tunnel connections
+- [x] Implement underground water
+  - [x] Water table level
+  - [x] Underground rivers
+  - [x] Flooded caves
+- [x] Implement cave decoration
+  - [x] Stalactites and stalagmites
+  - [x] Crystal formations
+  - [x] Moss/fungi in damp areas
 
 ### Milestone 4.5: Vegetation & Features `[Medium]`
 

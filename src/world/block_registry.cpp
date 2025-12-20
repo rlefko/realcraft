@@ -283,6 +283,90 @@ void BlockRegistry::register_defaults() {
         impl_->name_to_id[desc.name] = id;
     }
 
+    // Stalactite (ID 15) - Hangs from cave ceiling
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:stalactite";
+        desc.display_name = "Stalactite";
+        desc.flags = BlockFlags::Solid | BlockFlags::HasCollision | BlockFlags::Breakable;
+        desc.material = MaterialProperties{2200.0f, 800.0f, 4.0f, 0.7f, 0.0f, "stone"};
+        desc.texture_index = 17;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
+    // Stalagmite (ID 16) - Rises from cave floor
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:stalagmite";
+        desc.display_name = "Stalagmite";
+        desc.flags = BlockFlags::Solid | BlockFlags::HasCollision | BlockFlags::Breakable;
+        desc.material = MaterialProperties{2200.0f, 800.0f, 4.0f, 0.7f, 0.0f, "stone"};
+        desc.texture_index = 18;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
+    // Crystal (ID 17) - Emissive crystal formation
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:crystal";
+        desc.display_name = "Crystal";
+        desc.flags = BlockFlags::Solid | BlockFlags::Transparent | BlockFlags::Emissive | BlockFlags::HasCollision |
+                     BlockFlags::Breakable;
+        desc.material = MaterialProperties{1500.0f, 100.0f, 2.0f, 0.3f, 0.0f, "glass"};
+        desc.texture_index = 19;
+        desc.light_emission = 7;
+        desc.light_absorption = 0;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
+    // Cave Moss (ID 18) - Grows in damp cave areas
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:cave_moss";
+        desc.display_name = "Cave Moss";
+        desc.flags = BlockFlags::Transparent | BlockFlags::Replaceable | BlockFlags::Breakable;
+        desc.material = MaterialProperties{50.0f, 5.0f, 0.1f, 0.2f, 0.0f, "grass"};
+        desc.texture_index = 20;
+        desc.light_absorption = 0;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
+    // Glowing Mushroom (ID 19) - Bioluminescent fungi
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:glowing_mushroom";
+        desc.display_name = "Glowing Mushroom";
+        desc.flags = BlockFlags::Transparent | BlockFlags::Emissive | BlockFlags::Breakable;
+        desc.material = MaterialProperties{20.0f, 2.0f, 0.0f, 0.1f, 0.0f, "grass"};
+        desc.texture_index = 21;
+        desc.light_emission = 5;
+        desc.light_absorption = 0;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
+    // Dripstone (ID 20) - Pointed dripstone block
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:dripstone";
+        desc.display_name = "Dripstone";
+        desc.flags = BlockFlags::Solid | BlockFlags::FullCube | BlockFlags::HasCollision | BlockFlags::Breakable;
+        desc.material = MaterialProperties{2000.0f, 600.0f, 3.5f, 0.6f, 0.0f, "stone"};
+        desc.texture_index = 22;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
     REALCRAFT_LOG_INFO(core::log_category::WORLD, "Registered {} default block types", impl_->blocks.size());
 }
 

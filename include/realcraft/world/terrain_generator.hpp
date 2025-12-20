@@ -4,6 +4,7 @@
 #pragma once
 
 #include "biome.hpp"
+#include "cave_generator.hpp"
 #include "chunk.hpp"
 #include "climate.hpp"
 #include "erosion.hpp"
@@ -88,6 +89,9 @@ struct TerrainConfig {
 
     // Erosion system configuration
     ErosionConfig erosion;
+
+    // Cave generation configuration
+    CaveConfig caves;
 };
 
 // ============================================================================
