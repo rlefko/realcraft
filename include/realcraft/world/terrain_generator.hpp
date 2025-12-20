@@ -8,7 +8,11 @@
 #include "chunk.hpp"
 #include "climate.hpp"
 #include "erosion.hpp"
+#include "ore_generator.hpp"
+#include "structure_generator.hpp"
+#include "tree_generator.hpp"
 #include "types.hpp"
+#include "vegetation_generator.hpp"
 
 #include <array>
 #include <cstdint>
@@ -92,6 +96,12 @@ struct TerrainConfig {
 
     // Cave generation configuration
     CaveConfig caves;
+
+    // Feature generation configuration (Milestone 4.5)
+    OreConfig ores;
+    VegetationConfig vegetation;
+    TreeConfig trees;
+    StructureConfig structures;
 };
 
 // ============================================================================
