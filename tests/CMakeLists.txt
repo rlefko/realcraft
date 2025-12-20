@@ -49,9 +49,13 @@ add_executable(realcraft_world_tests
     unit/world/chunk_test.cpp
     unit/world/climate_test.cpp
     unit/world/erosion_test.cpp
+    unit/world/ore_test.cpp
     unit/world/serialization_test.cpp
+    unit/world/structure_test.cpp
     unit/world/terrain_generator_test.cpp
+    unit/world/tree_test.cpp
     unit/world/types_test.cpp
+    unit/world/vegetation_test.cpp
 )
 
 target_link_libraries(realcraft_world_tests
