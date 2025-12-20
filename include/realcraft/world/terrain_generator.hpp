@@ -3,7 +3,9 @@
 
 #pragma once
 
+#include "biome.hpp"
 #include "chunk.hpp"
+#include "climate.hpp"
 #include "types.hpp"
 
 #include <array>
@@ -75,6 +77,13 @@ struct TerrainConfig {
     // Block layer depths
     int32_t dirt_depth = 4;   // Dirt layer thickness below surface
     int32_t grass_depth = 1;  // Grass on top (for surface above sea level)
+
+    // Biome system configuration
+    struct BiomeSystemConfig {
+        bool enabled = true;                 // Enable biome-based block selection
+        ClimateConfig climate;               // Climate noise parameters
+        bool apply_height_modifiers = true;  // Apply per-biome height modifiers
+    } biome_system;
 };
 
 // ============================================================================
@@ -115,6 +124,19 @@ public:
 
     /// Get density without heightmap blending (raw 3D noise)
     [[nodiscard]] float get_raw_density(int64_t world_x, int64_t world_y, int64_t world_z) const;
+
+    // ========================================================================
+    // Biome Queries (requires biome_system.enabled = true)
+    // ========================================================================
+
+    /// Get biome type at world coordinates
+    [[nodiscard]] BiomeType get_biome(int64_t world_x, int64_t world_z) const;
+
+    /// Get climate sample at world coordinates (temperature, humidity, biome)
+    [[nodiscard]] ClimateSample get_climate(int64_t world_x, int64_t world_z) const;
+
+    /// Get blended biome info for smooth transitions
+    [[nodiscard]] BiomeBlend get_biome_blend(int64_t world_x, int64_t world_z) const;
 
     // ========================================================================
     // Configuration

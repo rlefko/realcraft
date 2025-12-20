@@ -2,10 +2,12 @@
 # World subsystem library
 
 set(WORLD_SOURCES
+    biome.cpp
     block.cpp
     block_registry.cpp
     chunk.cpp
     chunk_data.cpp
+    climate.cpp
     origin_shifter.cpp
     serialization.cpp
     terrain_generator.cpp

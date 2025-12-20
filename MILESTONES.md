@@ -282,22 +282,22 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Density threshold for solid blocks
   - [x] Blending with heightmap
 
-### Milestone 4.2: Biome System `[Medium]`
+### Milestone 4.2: Biome System `[Medium]` `[x]`
 
-- [ ] Implement climate model
-  - [ ] Temperature noise map
-  - [ ] Rainfall/humidity noise map
-  - [ ] Altitude influence
-- [ ] Implement biome distribution
-  - [ ] Biome selection from climate
-  - [ ] Biome definitions (forest, desert, tundra, etc.)
-  - [ ] Biome-specific block palettes
-- [ ] Implement smooth biome transitions
-  - [ ] Edge blending
-  - [ ] Gradient transitions
-- [ ] Implement biome-specific generation
-  - [ ] Per-biome noise parameters
-  - [ ] Biome-specific features
+- [x] Implement climate model
+  - [x] Temperature noise map
+  - [x] Rainfall/humidity noise map
+  - [x] Altitude influence
+- [x] Implement biome distribution
+  - [x] Biome selection from climate
+  - [x] Biome definitions (forest, desert, tundra, etc.)
+  - [x] Biome-specific block palettes
+- [x] Implement smooth biome transitions
+  - [x] Edge blending
+  - [x] Gradient transitions
+- [x] Implement biome-specific generation
+  - [x] Per-biome noise parameters
+  - [ ] Biome-specific features (deferred to Milestone 4.5)
 
 ### Milestone 4.3: Hydraulic Erosion `[High]`
 
