@@ -80,8 +80,8 @@ struct TerrainConfig {
 
     // Biome system configuration
     struct BiomeSystemConfig {
-        bool enabled = true;           // Enable biome-based block selection
-        ClimateConfig climate;         // Climate noise parameters
+        bool enabled = true;                 // Enable biome-based block selection
+        ClimateConfig climate;               // Climate noise parameters
         bool apply_height_modifiers = true;  // Apply per-biome height modifiers
     } biome_system;
 };

@@ -47,8 +47,8 @@ struct ClimateConfig {
 // ============================================================================
 
 struct ClimateSample {
-    float temperature = 0.5f;       // 0.0 (cold) to 1.0 (hot)
-    float humidity = 0.5f;          // 0.0 (dry) to 1.0 (wet)
+    float temperature = 0.5f;             // 0.0 (cold) to 1.0 (hot)
+    float humidity = 0.5f;                // 0.0 (dry) to 1.0 (wet)
     BiomeType biome = BiomeType::Plains;  // Determined biome at this location
 };
 

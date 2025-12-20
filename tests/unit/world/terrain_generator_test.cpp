@@ -3,14 +3,13 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
+#include <cmath>
 #include <realcraft/world/biome.hpp>
 #include <realcraft/world/block.hpp>
 #include <realcraft/world/chunk.hpp>
 #include <realcraft/world/climate.hpp>
 #include <realcraft/world/terrain_generator.hpp>
-
-#include <atomic>
-#include <cmath>
 #include <set>
 #include <thread>
 #include <vector>
@@ -152,9 +151,12 @@ TEST_F(TerrainGeneratorTest, ChunkHasCorrectBlockTypes) {
         for (int z = 0; z < CHUNK_SIZE_Z && !(has_stone && has_dirt && has_grass); ++z) {
             for (int y = 0; y < CHUNK_SIZE_Y; ++y) {
                 BlockId block = chunk.get_block(LocalBlockPos(x, y, z));
-                if (block == stone_id) has_stone = true;
-                if (block == dirt_id) has_dirt = true;
-                if (block == grass_id) has_grass = true;
+                if (block == stone_id)
+                    has_stone = true;
+                if (block == dirt_id)
+                    has_dirt = true;
+                if (block == grass_id)
+                    has_grass = true;
             }
         }
     }
@@ -413,8 +415,7 @@ TEST_F(TerrainGeneratorTest, GetBiomeReturnsValid) {
 
     for (int i = 0; i < 100; ++i) {
         BiomeType biome = gen.get_biome(i * 100, i * 100);
-        EXPECT_LT(static_cast<size_t>(biome), BIOME_COUNT)
-            << "Invalid biome at sample " << i;
+        EXPECT_LT(static_cast<size_t>(biome), BIOME_COUNT) << "Invalid biome at sample " << i;
     }
 }
 
@@ -487,8 +488,7 @@ TEST_F(TerrainGeneratorTest, MultipleBiomesGenerated) {
     }
 
     // Should find at least 3 different biome types
-    EXPECT_GE(found_biomes.size(), 3u)
-        << "Expected to find multiple biome types across world";
+    EXPECT_GE(found_biomes.size(), 3u) << "Expected to find multiple biome types across world";
 }
 
 // Test: Desert chunks have sand surface
@@ -519,8 +519,7 @@ TEST_F(TerrainGeneratorTest, DesertHasSandSurface) {
     }
 
     // Generate chunk at desert location
-    ChunkPos chunk_pos(static_cast<int>(desert_x / CHUNK_SIZE_X),
-                       static_cast<int>(desert_z / CHUNK_SIZE_Z));
+    ChunkPos chunk_pos(static_cast<int>(desert_x / CHUNK_SIZE_X), static_cast<int>(desert_z / CHUNK_SIZE_Z));
     ChunkDesc desc;
     desc.position = chunk_pos;
     Chunk chunk(desc);
@@ -559,8 +558,7 @@ TEST_F(TerrainGeneratorTest, BiomeQueriesDeterministic) {
         int64_t x = i * 100 - 5000;
         int64_t z = i * 50 - 2500;
 
-        EXPECT_EQ(gen1.get_biome(x, z), gen2.get_biome(x, z))
-            << "Biome mismatch at (" << x << ", " << z << ")";
+        EXPECT_EQ(gen1.get_biome(x, z), gen2.get_biome(x, z)) << "Biome mismatch at (" << x << ", " << z << ")";
     }
 }
 

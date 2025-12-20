@@ -239,10 +239,14 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                 palette = biome_registry.get_palette(biome);
 
                 // Handle invalid palette entries by using fallback blocks
-                if (palette.surface_block == BLOCK_INVALID) palette.surface_block = fallback_grass_id;
-                if (palette.subsurface_block == BLOCK_INVALID) palette.subsurface_block = fallback_dirt_id;
-                if (palette.underwater_block == BLOCK_INVALID) palette.underwater_block = fallback_sand_id;
-                if (palette.stone_block == BLOCK_INVALID) palette.stone_block = fallback_stone_id;
+                if (palette.surface_block == BLOCK_INVALID)
+                    palette.surface_block = fallback_grass_id;
+                if (palette.subsurface_block == BLOCK_INVALID)
+                    palette.subsurface_block = fallback_dirt_id;
+                if (palette.underwater_block == BLOCK_INVALID)
+                    palette.underwater_block = fallback_sand_id;
+                if (palette.stone_block == BLOCK_INVALID)
+                    palette.stone_block = fallback_stone_id;
 
                 // Record center biome for chunk metadata
                 if (x == center_x && z == center_z) {

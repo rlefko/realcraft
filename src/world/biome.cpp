@@ -1,11 +1,10 @@
 // RealCraft World System
 // biome.cpp - Biome type definitions and registry implementation
 
-#include <realcraft/world/biome.hpp>
-#include <realcraft/world/block.hpp>
-
 #include <algorithm>
 #include <array>
+#include <realcraft/world/biome.hpp>
+#include <realcraft/world/block.hpp>
 #include <stdexcept>
 
 namespace realcraft::world {
@@ -15,8 +14,9 @@ namespace realcraft::world {
 // ============================================================================
 
 namespace {
-constexpr std::array<const char*, BIOME_COUNT> BIOME_NAMES = {
-    "ocean", "beach", "desert", "savanna", "plains", "forest", "swamp", "taiga", "tundra", "mountains", "snowy_mountains", "river"};
+constexpr std::array<const char*, BIOME_COUNT> BIOME_NAMES = {"ocean",  "beach",     "desert",          "savanna",
+                                                              "plains", "forest",    "swamp",           "taiga",
+                                                              "tundra", "mountains", "snowy_mountains", "river"};
 }  // namespace
 
 const char* biome_type_to_string(BiomeType type) {
@@ -40,7 +40,8 @@ BiomeType biome_type_from_string(std::string_view name) {
 // BiomeHeightModifiers Blending
 // ============================================================================
 
-BiomeHeightModifiers blend_height_modifiers(const BiomeHeightModifiers& a, const BiomeHeightModifiers& b, float blend_factor) {
+BiomeHeightModifiers blend_height_modifiers(const BiomeHeightModifiers& a, const BiomeHeightModifiers& b,
+                                            float blend_factor) {
     float t = std::clamp(blend_factor, 0.0f, 1.0f);
     float inv_t = 1.0f - t;
 

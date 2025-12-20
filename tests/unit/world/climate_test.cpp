@@ -3,12 +3,11 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
+#include <cmath>
 #include <realcraft/world/biome.hpp>
 #include <realcraft/world/block.hpp>
 #include <realcraft/world/climate.hpp>
-
-#include <atomic>
-#include <cmath>
 #include <thread>
 #include <vector>
 
@@ -101,12 +100,11 @@ TEST_F(ClimateTest, AltitudeReducesTemperature) {
     int64_t x = 1000;
     int64_t z = 1000;
 
-    ClimateSample low = map.sample(x, z, 64.0f);   // At sea level
+    ClimateSample low = map.sample(x, z, 64.0f);    // At sea level
     ClimateSample high = map.sample(x, z, 164.0f);  // 100 blocks above sea level
 
     // Higher altitude should be colder
-    EXPECT_LT(high.temperature, low.temperature)
-        << "Temperature should decrease with altitude";
+    EXPECT_LT(high.temperature, low.temperature) << "Temperature should decrease with altitude";
 
     // Temperature drop is limited by clamping to [0, 1] range
     // Just verify the drop is positive and reasonable
@@ -141,8 +139,7 @@ TEST_F(ClimateTest, GetBiomeReturnsValid) {
 
     for (int i = 0; i < 100; ++i) {
         BiomeType biome = map.get_biome(i * 100, i * 100, 70.0f);
-        EXPECT_LT(static_cast<size_t>(biome), BIOME_COUNT)
-            << "Invalid biome at sample " << i;
+        EXPECT_LT(static_cast<size_t>(biome), BIOME_COUNT) << "Invalid biome at sample " << i;
     }
 }
 
@@ -168,8 +165,7 @@ TEST_F(ClimateTest, ThreadSafeSampling) {
             for (int i = 0; i < 100; ++i) {
                 float temp = map.get_raw_temperature(i * 100, i * 100);
                 float humid = map.get_raw_humidity(i * 100, i * 100);
-                if (std::abs(temp - expected_temps[i]) > 0.0001f ||
-                    std::abs(humid - expected_humids[i]) > 0.0001f) {
+                if (std::abs(temp - expected_temps[i]) > 0.0001f || std::abs(humid - expected_humids[i]) > 0.0001f) {
                     all_match = false;
                 }
             }

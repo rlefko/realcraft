@@ -147,8 +147,7 @@ private:
 // ============================================================================
 
 /// Blend two biome height modifiers based on blend factor (0 = a, 1 = b)
-[[nodiscard]] BiomeHeightModifiers blend_height_modifiers(const BiomeHeightModifiers& a,
-                                                          const BiomeHeightModifiers& b,
+[[nodiscard]] BiomeHeightModifiers blend_height_modifiers(const BiomeHeightModifiers& a, const BiomeHeightModifiers& b,
                                                           float blend_factor);
 
 }  // namespace realcraft::world

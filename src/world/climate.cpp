@@ -47,8 +47,8 @@ struct ClimateMap::Impl {
         }
 
         float raw = temperature_node->GenSingle2D(static_cast<float>(x) * config.temperature.scale,
-                                                   static_cast<float>(z) * config.temperature.scale,
-                                                   static_cast<int>(config.seed));
+                                                  static_cast<float>(z) * config.temperature.scale,
+                                                  static_cast<int>(config.seed));
 
         // Map from [-1, 1] to [0, 1]
         return (raw + 1.0f) * 0.5f;
@@ -61,8 +61,8 @@ struct ClimateMap::Impl {
 
         // Use different seed offset for humidity to get uncorrelated noise
         float raw = humidity_node->GenSingle2D(static_cast<float>(x) * config.humidity.scale,
-                                                static_cast<float>(z) * config.humidity.scale,
-                                                static_cast<int>(config.seed + 50000));
+                                               static_cast<float>(z) * config.humidity.scale,
+                                               static_cast<int>(config.seed + 50000));
 
         // Map from [-1, 1] to [0, 1]
         return (raw + 1.0f) * 0.5f;
