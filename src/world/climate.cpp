@@ -155,6 +155,12 @@ BiomeBlend ClimateMap::sample_blended(int64_t world_x, int64_t world_z, float he
         }
     }
 
+    // Handle edge case where no biomes were sampled (satisfies static analyzer)
+    if (biome_counts.empty()) {
+        blend.blended_height = BiomeRegistry::instance().get_height_modifiers(blend.primary_biome);
+        return blend;
+    }
+
     // Find the primary and secondary biomes
     uint8_t primary_id = static_cast<uint8_t>(center.biome);
     uint8_t secondary_id = primary_id;
