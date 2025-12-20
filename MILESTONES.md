@@ -259,28 +259,28 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 4: World Generation System `[ ]`
+## Phase 4: World Generation System `[~]`
 
 **Goal:** Implement procedural terrain generation with noise and erosion
 
-### Milestone 4.1: Noise-Based Terrain `[Medium]`
+### Milestone 4.1: Noise-Based Terrain `[Medium]` `[x]`
 
-- [ ] Implement noise generation
-  - [ ] Integrate FastNoise2
-  - [ ] Perlin/Simplex noise setup
-  - [ ] Noise parameter configuration
-- [ ] Implement fractal octave composition
-  - [ ] Multiple octave layers
-  - [ ] Persistence and lacunarity
-  - [ ] Domain warping
-- [ ] Implement heightmap generation
-  - [ ] 2D heightmap from noise
-  - [ ] Height scaling and offset
-  - [ ] Terrain type blending
-- [ ] Implement 3D density
-  - [ ] 3D noise for caves/overhangs
-  - [ ] Density threshold for solid blocks
-  - [ ] Blending with heightmap
+- [x] Implement noise generation
+  - [x] Integrate FastNoise2
+  - [x] Perlin/Simplex noise setup
+  - [x] Noise parameter configuration
+- [x] Implement fractal octave composition
+  - [x] Multiple octave layers
+  - [x] Persistence and lacunarity
+  - [x] Domain warping
+- [x] Implement heightmap generation
+  - [x] 2D heightmap from noise
+  - [x] Height scaling and offset
+  - [x] Terrain type blending
+- [x] Implement 3D density
+  - [x] 3D noise for caves/overhangs
+  - [x] Density threshold for solid blocks
+  - [x] Blending with heightmap
 
 ### Milestone 4.2: Biome System `[Medium]`
 

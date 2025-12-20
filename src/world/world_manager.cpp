@@ -9,6 +9,7 @@
 #include <realcraft/core/logger.hpp>
 #include <realcraft/platform/file_io.hpp>
 #include <realcraft/world/block.hpp>
+#include <realcraft/world/terrain_generator.hpp>
 #include <realcraft/world/world_manager.hpp>
 #include <thread>
 #include <unordered_map>
@@ -34,6 +35,9 @@ struct WorldManager::Impl {
     // Serialization
     std::unique_ptr<ChunkSerializer> serializer;
     std::unique_ptr<RegionManager> region_manager;
+
+    // Terrain generation
+    std::unique_ptr<TerrainGenerator> terrain_generator;
 
     // Player tracking
     WorldPos player_position{0, 64, 0};
@@ -179,45 +183,13 @@ struct WorldManager::Impl {
     }
 
     void generate_chunk(Chunk& chunk) {
-        // Simple placeholder generation - fills with stone at bottom, air above
-        auto lock = chunk.write_lock();
-
-        // Get block IDs from registry
-        const auto& registry = BlockRegistry::instance();
-        BlockId stone_id = registry.stone_id();
-        BlockId dirt_id = registry.dirt_id();
-        BlockId grass_id = registry.grass_id();
-
-        // Simple flat terrain for now
-        int base_height = 64;
-
-        for (int x = 0; x < CHUNK_SIZE_X; ++x) {
-            for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
-                // Simple height variation using position
-                WorldBlockPos world_pos = local_to_world(chunk.get_position(), LocalBlockPos(x, 0, z));
-                int height = base_height + static_cast<int>((std::sin(static_cast<double>(world_pos.x) * 0.05) +
-                                                             std::sin(static_cast<double>(world_pos.z) * 0.07)) *
-                                                            4.0);
-
-                for (int y = 0; y < CHUNK_SIZE_Y; ++y) {
-                    BlockId block_id = BLOCK_AIR;
-
-                    if (y < height - 4) {
-                        block_id = stone_id;
-                    } else if (y < height - 1) {
-                        block_id = dirt_id;
-                    } else if (y < height) {
-                        block_id = grass_id;
-                    }
-
-                    if (block_id != BLOCK_AIR) {
-                        lock.set_block(LocalBlockPos(x, y, z), block_id);
-                    }
-                }
-            }
+        // Use TerrainGenerator for noise-based procedural terrain
+        if (terrain_generator) {
+            terrain_generator->generate(chunk);
+        } else {
+            // Fallback: mark as generated with no blocks (should not happen)
+            chunk.get_metadata_mut().has_been_generated = true;
         }
-
-        chunk.get_metadata_mut().has_been_generated = true;
     }
 
     void update_neighbors(const ChunkPos& pos, Chunk* chunk) {
@@ -295,6 +267,11 @@ bool WorldManager::initialize(const WorldConfig& config) {
     impl_->origin_shifter.set_shift_callback([this](const WorldBlockPos& old_origin, const WorldBlockPos& new_origin) {
         impl_->notify_origin_shifted(old_origin, new_origin);
     });
+
+    // Initialize terrain generator
+    TerrainConfig terrain_config;
+    terrain_config.seed = impl_->config.seed;
+    impl_->terrain_generator = std::make_unique<TerrainGenerator>(terrain_config);
 
     // Initialize serialization
     impl_->serializer = std::make_unique<ChunkSerializer>();
