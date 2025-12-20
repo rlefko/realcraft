@@ -8,7 +8,12 @@ set(WORLD_SOURCES
     chunk.cpp
     chunk_data.cpp
     climate.cpp
+    erosion.cpp
+    erosion_cpu.cpp
+    erosion_gpu.cpp
+    erosion_heightmap.cpp
     origin_shifter.cpp
+    river_carver.cpp
     serialization.cpp
     terrain_generator.cpp
     world_manager.cpp
@@ -22,6 +27,7 @@ target_link_libraries(realcraft_world
     PUBLIC
         realcraft::platform
         realcraft::core
+        realcraft::graphics
     PRIVATE
         spdlog::spdlog
         $<IF:$<TARGET_EXISTS:zstd::libzstd_static>,zstd::libzstd_static,zstd::libzstd_shared>

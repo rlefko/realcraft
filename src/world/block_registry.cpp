@@ -243,6 +243,46 @@ void BlockRegistry::register_defaults() {
         impl_->name_to_id[desc.name] = id;
     }
 
+    // Silt (ID 12) - Fine sediment from erosion
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:silt";
+        desc.display_name = "Silt";
+        desc.flags = BlockFlags::Solid | BlockFlags::FullCube | BlockFlags::HasCollision | BlockFlags::Breakable;
+        desc.material = MaterialProperties{1400.0f, 80.0f, 0.8f, 0.5f, 0.0f, "dirt"};
+        desc.texture_index = 14;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
+    // Alluvium (ID 13) - Coarser sediment from erosion (floodplains)
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:alluvium";
+        desc.display_name = "Alluvium";
+        desc.flags = BlockFlags::Solid | BlockFlags::FullCube | BlockFlags::HasCollision | BlockFlags::Breakable;
+        desc.material = MaterialProperties{1600.0f, 120.0f, 1.0f, 0.55f, 0.0f, "dirt"};
+        desc.texture_index = 15;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
+    // River Gravel (ID 14) - Gravel deposits at river mouths
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:river_gravel";
+        desc.display_name = "River Gravel";
+        desc.flags = BlockFlags::Solid | BlockFlags::FullCube | BlockFlags::HasCollision | BlockFlags::Breakable |
+                     BlockFlags::Gravity;
+        desc.material = MaterialProperties{1900.0f, 110.0f, 1.2f, 0.6f, 0.0f, "gravel"};
+        desc.texture_index = 16;
+        auto id = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(id, desc)));
+        impl_->name_to_id[desc.name] = id;
+    }
+
     REALCRAFT_LOG_INFO(core::log_category::WORLD, "Registered {} default block types", impl_->blocks.size());
 }
 

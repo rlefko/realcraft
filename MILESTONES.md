@@ -299,25 +299,25 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Per-biome noise parameters
   - [ ] Biome-specific features (deferred to Milestone 4.5)
 
-### Milestone 4.3: Hydraulic Erosion `[High]`
+### Milestone 4.3: Hydraulic Erosion `[High]` `[x]`
 
-- [ ] Implement CPU erosion (particle-based)
-  - [ ] Raindrop simulation
-  - [ ] Sediment pickup and deposit
-  - [ ] Terrain modification
-  - [ ] Parameter tuning
-- [ ] Implement GPU compute erosion
-  - [ ] Compute shader for erosion
-  - [ ] Heightmap upload/download
-  - [ ] Parallel droplet simulation
-- [ ] Implement river channel carving
-  - [ ] Water flow accumulation
-  - [ ] Channel depth calculation
-  - [ ] River path generation
-- [ ] Implement sediment deposition
-  - [ ] Alluvial plains
-  - [ ] Delta formation
-  - [ ] Sediment block types
+- [x] Implement CPU erosion (particle-based)
+  - [x] Raindrop simulation
+  - [x] Sediment pickup and deposit
+  - [x] Terrain modification
+  - [x] Parameter tuning
+- [x] Implement GPU compute erosion
+  - [x] Compute shader for erosion
+  - [x] Heightmap upload/download
+  - [x] Parallel droplet simulation
+- [x] Implement river channel carving
+  - [x] Water flow accumulation
+  - [x] Channel depth calculation
+  - [x] River path generation
+- [x] Implement sediment deposition
+  - [x] Alluvial plains
+  - [x] Delta formation
+  - [x] Sediment block types
 
 ### Milestone 4.4: Cave Generation `[Medium]`
 
