@@ -338,24 +338,24 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Crystal formations
   - [x] Moss/fungi in damp areas
 
-### Milestone 4.5: Vegetation & Features `[Medium]` `[x]`
+### Milestone 4.5: Vegetation & Features `[Medium]`
 
-- [x] Implement tree generation
-  - [x] L-system tree generation
-  - [x] Tree templates by biome
-  - [x] Tree size variation
+- [ ] Implement tree generation
+  - [ ] L-system tree generation
+  - [ ] Tree templates by biome
+  - [ ] Tree size variation
   - [ ] Realistic root systems (optional)
-- [x] Implement ground cover
-  - [x] Grass placement
-  - [x] Flower distribution
-  - [x] Bush/shrub generation
-- [x] Implement ore distribution
-  - [x] Ore vein generation
-  - [x] Depth-based ore types
-  - [x] Cluster sizes
-- [x] Implement structure placement
+- [ ] Implement ground cover
+  - [ ] Grass placement
+  - [ ] Flower distribution
+  - [ ] Bush/shrub generation
+- [ ] Implement ore distribution
+  - [ ] Ore vein generation
+  - [ ] Depth-based ore types
+  - [ ] Cluster sizes
+- [ ] Implement structure placement
   - [ ] Ruins/abandoned structures (optional)
-  - [x] Natural formations (rock spires, etc.)
+  - [ ] Natural formations (rock spires, etc.)
 
 ### Milestone 4.6: Chunk Border Handling `[Medium]`
 

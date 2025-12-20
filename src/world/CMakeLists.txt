@@ -13,14 +13,10 @@ set(WORLD_SOURCES
     erosion_cpu.cpp
     erosion_gpu.cpp
     erosion_heightmap.cpp
-    ore_generator.cpp
     origin_shifter.cpp
     river_carver.cpp
     serialization.cpp
-    structure_generator.cpp
     terrain_generator.cpp
-    tree_generator.cpp
-    vegetation_generator.cpp
     world_manager.cpp
 )
 

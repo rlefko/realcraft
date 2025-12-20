@@ -10,11 +10,7 @@
 #include <realcraft/world/climate.hpp>
 #include <realcraft/world/erosion.hpp>
 #include <realcraft/world/erosion_heightmap.hpp>
-#include <realcraft/world/ore_generator.hpp>
-#include <realcraft/world/structure_generator.hpp>
 #include <realcraft/world/terrain_generator.hpp>
-#include <realcraft/world/tree_generator.hpp>
-#include <realcraft/world/vegetation_generator.hpp>
 #include <utility>
 
 namespace realcraft::world {
@@ -42,12 +38,6 @@ struct TerrainGenerator::Impl {
 
     // Cave generator (thread-safe noise-based cave carving)
     std::unique_ptr<CaveGenerator> cave_generator;
-
-    // Feature generators (Milestone 4.5)
-    std::unique_ptr<OreGenerator> ore_generator;
-    std::unique_ptr<VegetationGenerator> vegetation_generator;
-    std::unique_ptr<TreeGenerator> tree_generator;
-    std::unique_ptr<StructureGenerator> structure_generator;
 
     void build_nodes() {
         // Continental terrain (large scale shapes using FBm)
@@ -122,43 +112,6 @@ struct TerrainGenerator::Impl {
             cave_generator = std::make_unique<CaveGenerator>(cave_cfg);
         } else {
             cave_generator.reset();
-        }
-
-        // Feature generators (Milestone 4.5)
-        // Ore generator
-        if (config.ores.enabled) {
-            OreConfig ore_cfg = config.ores;
-            ore_cfg.seed = config.seed;
-            ore_generator = std::make_unique<OreGenerator>(ore_cfg);
-        } else {
-            ore_generator.reset();
-        }
-
-        // Vegetation generator
-        if (config.vegetation.enabled) {
-            VegetationConfig veg_cfg = config.vegetation;
-            veg_cfg.seed = config.seed;
-            vegetation_generator = std::make_unique<VegetationGenerator>(veg_cfg);
-        } else {
-            vegetation_generator.reset();
-        }
-
-        // Tree generator
-        if (config.trees.enabled) {
-            TreeConfig tree_cfg = config.trees;
-            tree_cfg.seed = config.seed;
-            tree_generator = std::make_unique<TreeGenerator>(tree_cfg);
-        } else {
-            tree_generator.reset();
-        }
-
-        // Structure generator
-        if (config.structures.enabled) {
-            StructureConfig struct_cfg = config.structures;
-            struct_cfg.seed = config.seed;
-            structure_generator = std::make_unique<StructureGenerator>(struct_cfg);
-        } else {
-            structure_generator.reset();
         }
     }
 
@@ -507,171 +460,6 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                         if (impl_->cave_generator->should_place_mushroom(world_x, y, world_z)) {
                             lock.set_block(LocalBlockPos(x, y, z), glowing_mushroom_id);
                             continue;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ========================================================================
-    // Feature Generation (Milestone 4.5)
-    // ========================================================================
-
-    // Ore generation pass - replace stone with ores
-    if (impl_->ore_generator) {
-        auto ore_positions = impl_->ore_generator->generate_ores(chunk_pos, chunk_biome);
-        for (const auto& ore : ore_positions) {
-            // Only replace stone blocks with ores
-            BlockId existing = lock.get_block(ore.pos);
-            if (existing == fallback_stone_id) {
-                lock.set_block(ore.pos, ore.block);
-            }
-        }
-    }
-
-    // Structure generation pass (rock spires, boulders)
-    if (impl_->structure_generator) {
-        for (size_t t = 0; t < static_cast<size_t>(StructureType::Count); ++t) {
-            StructureType type = static_cast<StructureType>(t);
-            if (impl_->structure_generator->should_place_structure(chunk_pos, type, chunk_biome)) {
-                auto pos_opt = impl_->structure_generator->get_structure_position(chunk_pos, type);
-                if (pos_opt) {
-                    int32_t surface_y = heights[static_cast<size_t>(pos_opt->z * CHUNK_SIZE_X + pos_opt->x)];
-                    auto structure_blocks = impl_->structure_generator->generate_structure(chunk_pos, type, surface_y);
-                    for (const auto& sb : structure_blocks) {
-                        LocalBlockPos world_pos(pos_opt->x + sb.offset.x, surface_y + sb.offset.y,
-                                                pos_opt->z + sb.offset.z);
-                        // Bounds check
-                        if (world_pos.x >= 0 && world_pos.x < CHUNK_SIZE_X && world_pos.z >= 0 &&
-                            world_pos.z < CHUNK_SIZE_Z && world_pos.y > 0 && world_pos.y < CHUNK_SIZE_Y) {
-                            lock.set_block(world_pos, sb.block);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Tree generation pass
-    if (impl_->tree_generator) {
-        for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
-            for (int x = 0; x < CHUNK_SIZE_X; ++x) {
-                const int64_t world_x = base_x + x;
-                const int64_t world_z = base_z + z;
-                const int32_t surface_y = heights[static_cast<size_t>(z * CHUNK_SIZE_X + x)];
-
-                // Skip if below sea level
-                if (surface_y <= impl_->config.sea_level) {
-                    continue;
-                }
-
-                // Get biome at this position
-                BiomeType local_biome = chunk_biome;
-                if (impl_->climate_map) {
-                    local_biome = impl_->climate_map->get_biome(world_x, world_z, static_cast<float>(surface_y));
-                }
-
-                if (impl_->tree_generator->should_place_tree(world_x, world_z, local_biome)) {
-                    auto tree_blocks = impl_->tree_generator->generate_tree(world_x, world_z, local_biome, surface_y);
-                    for (const auto& tb : tree_blocks) {
-                        LocalBlockPos world_pos(x + tb.offset.x, surface_y + tb.offset.y, z + tb.offset.z);
-                        // Bounds check - trees can extend beyond chunk
-                        if (world_pos.x >= 0 && world_pos.x < CHUNK_SIZE_X && world_pos.z >= 0 &&
-                            world_pos.z < CHUNK_SIZE_Z && world_pos.y > 0 && world_pos.y < CHUNK_SIZE_Y) {
-                            // Only replace air or replaceable blocks
-                            BlockId existing = lock.get_block(world_pos);
-                            const BlockType* block_type = block_registry.get(existing);
-                            if (existing == BLOCK_AIR || (block_type && block_type->is_replaceable())) {
-                                lock.set_block(world_pos, tb.block);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Vegetation generation pass (grass, flowers, bushes, cacti)
-    if (impl_->vegetation_generator) {
-        const auto& registry = BlockRegistry::instance();
-        const auto tall_grass_id = registry.find_id("realcraft:tall_grass").value_or(BLOCK_AIR);
-        const auto fern_id = registry.find_id("realcraft:fern").value_or(BLOCK_AIR);
-        const auto dead_bush_id = registry.find_id("realcraft:dead_bush").value_or(BLOCK_AIR);
-        const auto cactus_id = registry.find_id("realcraft:cactus").value_or(BLOCK_AIR);
-        const auto bush_id = registry.find_id("realcraft:bush").value_or(BLOCK_AIR);
-        const auto lily_pad_id = registry.find_id("realcraft:lily_pad").value_or(BLOCK_AIR);
-
-        for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
-            for (int x = 0; x < CHUNK_SIZE_X; ++x) {
-                const int64_t world_x = base_x + x;
-                const int64_t world_z = base_z + z;
-                const int32_t surface_y = heights[static_cast<size_t>(z * CHUNK_SIZE_X + x)];
-
-                // Get biome at this position
-                BiomeType local_biome = chunk_biome;
-                if (impl_->climate_map) {
-                    local_biome = impl_->climate_map->get_biome(world_x, world_z, static_cast<float>(surface_y));
-                }
-
-                // Check if surface is above sea level
-                if (surface_y > impl_->config.sea_level) {
-                    // Get block at surface and above
-                    if (surface_y + 1 >= CHUNK_SIZE_Y)
-                        continue;
-                    BlockId surface_block = lock.get_block(LocalBlockPos(x, surface_y, z));
-                    BlockId above_block = lock.get_block(LocalBlockPos(x, surface_y + 1, z));
-
-                    // Only place on grass blocks with air above
-                    if (above_block != BLOCK_AIR)
-                        continue;
-
-                    // Cactus (desert, on sand)
-                    if (local_biome == BiomeType::Desert && surface_block == fallback_sand_id) {
-                        if (impl_->vegetation_generator->should_place_cactus(world_x, world_z, local_biome)) {
-                            int32_t cactus_height = impl_->vegetation_generator->get_cactus_height(world_x, world_z);
-                            for (int32_t cy = 1; cy <= cactus_height && surface_y + cy < CHUNK_SIZE_Y; ++cy) {
-                                lock.set_block(LocalBlockPos(x, surface_y + cy, z), cactus_id);
-                            }
-                            continue;
-                        }
-                    }
-
-                    // Dead bush (desert/savanna)
-                    if (impl_->vegetation_generator->should_place_dead_bush(world_x, world_z, local_biome)) {
-                        lock.set_block(LocalBlockPos(x, surface_y + 1, z), dead_bush_id);
-                        continue;
-                    }
-
-                    // Bush (forested biomes, on grass)
-                    if (surface_block == fallback_grass_id) {
-                        if (impl_->vegetation_generator->should_place_bush(world_x, world_z, local_biome)) {
-                            lock.set_block(LocalBlockPos(x, surface_y + 1, z), bush_id);
-                            continue;
-                        }
-
-                        // Flowers (before grass, lower density)
-                        BlockId flower = impl_->vegetation_generator->get_flower_block(world_x, world_z, local_biome);
-                        if (flower != BLOCK_AIR) {
-                            lock.set_block(LocalBlockPos(x, surface_y + 1, z), flower);
-                            continue;
-                        }
-
-                        // Tall grass / fern
-                        if (impl_->vegetation_generator->should_place_grass(world_x, world_z, local_biome)) {
-                            BlockId grass_block =
-                                impl_->vegetation_generator->get_grass_block(world_x, world_z, local_biome);
-                            lock.set_block(LocalBlockPos(x, surface_y + 1, z), grass_block);
-                        }
-                    }
-                } else if (surface_y == impl_->config.sea_level) {
-                    // Lily pads on water surface (swamp)
-                    if (local_biome == BiomeType::Swamp) {
-                        BlockId at_water_level = lock.get_block(LocalBlockPos(x, surface_y, z));
-                        if (at_water_level == water_id) {
-                            if (impl_->vegetation_generator->should_place_lily_pad(world_x, world_z, local_biome)) {
-                                lock.set_block(LocalBlockPos(x, surface_y + 1, z), lily_pad_id);
-                            }
                         }
                     }
                 }
