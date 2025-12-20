@@ -259,7 +259,7 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 4: World Generation System `[~]`
+## Phase 4: World Generation System `[x]`
 
 **Goal:** Implement procedural terrain generation with noise and erosion
 
@@ -357,17 +357,17 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [ ] Ruins/abandoned structures (optional)
   - [x] Natural formations (rock spires, etc.)
 
-### Milestone 4.6: Chunk Border Handling `[Medium]`
+### Milestone 4.6: Chunk Border Handling `[Medium]` `[x]`
 
-- [ ] Implement cross-chunk erosion
-  - [ ] Erosion buffer zones
-  - [ ] Consistent results across borders
-- [ ] Implement seamless terrain
-  - [ ] Height continuity
-  - [ ] Biome edge handling
-- [ ] Implement river continuation
-  - [ ] Cross-chunk water flow
-  - [ ] River network consistency
+- [x] Implement cross-chunk erosion
+  - [x] Erosion buffer zones
+  - [x] Consistent results across borders
+- [x] Implement seamless terrain
+  - [x] Height continuity
+  - [x] Biome edge handling
+- [x] Implement river continuation
+  - [x] Cross-chunk water flow
+  - [x] River network consistency
 
 ---
 

@@ -137,6 +137,29 @@ void main() {
 
         if (new_pos_x < 1.0 || new_pos_x >= float(map_width - 2) ||
             new_pos_z < 1.0 || new_pos_z >= float(map_height - 2)) {
+            // Deposit remaining sediment at boundary instead of discarding
+            if (sed > 0.0) {
+                float deposit = sed * 0.5;  // Deposit half at boundary
+                float w00 = (1.0 - cell_offset_x) * (1.0 - cell_offset_z);
+                float w10 = cell_offset_x * (1.0 - cell_offset_z);
+                float w01 = (1.0 - cell_offset_x) * cell_offset_z;
+                float w11 = cell_offset_x * cell_offset_z;
+
+                int idx00 = get_index(node_x, node_z);
+                int idx10 = get_index(node_x + 1, node_z);
+                int idx01 = get_index(node_x, node_z + 1);
+                int idx11 = get_index(node_x + 1, node_z + 1);
+
+                heightmap[idx00] += deposit * w00;
+                heightmap[idx10] += deposit * w10;
+                heightmap[idx01] += deposit * w01;
+                heightmap[idx11] += deposit * w11;
+
+                sediment[idx00] += deposit * w00;
+                sediment[idx10] += deposit * w10;
+                sediment[idx01] += deposit * w01;
+                sediment[idx11] += deposit * w11;
+            }
             break;
         }
 
