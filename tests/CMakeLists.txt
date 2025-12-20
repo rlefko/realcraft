@@ -65,3 +65,29 @@ target_include_directories(realcraft_world_tests
 
 realcraft_configure_target(realcraft_world_tests)
 gtest_discover_tests(realcraft_world_tests)
+
+# Rendering unit tests (no GPU required for basic tests)
+add_executable(realcraft_rendering_tests
+    unit/rendering/camera_test.cpp
+    unit/rendering/frustum_test.cpp
+    unit/rendering/lighting_test.cpp
+    unit/rendering/mesh_vertex_test.cpp
+)
+
+target_link_libraries(realcraft_rendering_tests
+    PRIVATE
+        realcraft::rendering
+        realcraft::world
+        realcraft::core
+        GTest::gtest
+        GTest::gtest_main
+        glm::glm
+)
+
+target_include_directories(realcraft_rendering_tests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+realcraft_configure_target(realcraft_rendering_tests)
+gtest_discover_tests(realcraft_rendering_tests)

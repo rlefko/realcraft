@@ -8,6 +8,8 @@
 #include <realcraft/graphics/swap_chain.hpp>
 #include <realcraft/graphics/types.hpp>
 #include <realcraft/platform/input.hpp>
+#include <realcraft/rendering/render_system.hpp>
+#include <realcraft/world/world_manager.hpp>
 
 // Bullet Physics
 #include <btBulletDynamicsCommon.h>
@@ -84,24 +86,60 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     }
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "FastNoise2: OK");
 
-    // Demo state
-    double total_time = 0.0;
+    // Initialize World Manager
+    world::WorldConfig world_config;
+    world_config.name = "demo_world";
+    world_config.seed = 12345;
+    world_config.view_distance = 4;
+    world_config.generation_threads = 2;
+    world_config.enable_saving = false;  // Demo mode, no persistence
+
+    world::WorldManager world_manager;
+    if (!world_manager.initialize(world_config)) {
+        REALCRAFT_LOG_ERROR(core::log_category::ENGINE, "Failed to initialize World Manager");
+        return 1;
+    }
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "World Manager: OK");
+
+    // Initialize Render System
+    rendering::RenderSystemConfig render_config;
+    render_config.camera.fov_degrees = 70.0f;
+    render_config.camera.mouse_sensitivity = 0.1f;
+    render_config.camera.move_speed = 10.0f;
+    render_config.render_distance = 4.0f;
+    render_config.mesh_manager.worker_threads = 2;
+
+    rendering::RenderSystem render_system;
+    if (!render_system.initialize(&engine, &world_manager, render_config)) {
+        REALCRAFT_LOG_ERROR(core::log_category::ENGINE, "Failed to initialize Render System");
+        world_manager.shutdown();
+        return 1;
+    }
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Render System: OK");
+
+    // Set initial camera position (above ground, looking around)
+    render_system.get_camera().set_position({0.0, 80.0, 0.0});
+    render_system.get_camera().set_rotation(-90.0f, -20.0f);
+
+    // Set initial player position for chunk loading
+    world_manager.set_player_position({0.0, 80.0, 0.0});
 
     // Log controls
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Controls:");
-    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  ESC - Exit");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  WASD - Move camera");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Space/Shift - Fly up/down");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Mouse - Look around");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Click - Capture mouse");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  ESC - Release mouse / Exit");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  F11 - Toggle fullscreen");
-    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Click - Capture mouse (ESC to release)");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  T - Toggle wireframe");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  P - Pause/resume day-night cycle");
 
     // Fixed update callback (60 Hz physics)
-    engine.set_fixed_update_callback([](double /*dt*/) {
-        // Physics updates will go here
-    });
+    engine.set_fixed_update_callback([&render_system](double dt) { render_system.fixed_update(dt); });
 
     // Variable update callback (every frame)
-    engine.set_update_callback([&engine, &total_time](double dt) {
-        total_time += dt;
-
+    engine.set_update_callback([&engine, &world_manager, &render_system](double dt) {
         auto* input = engine.get_input();
         auto* window = engine.get_window();
 
@@ -120,6 +158,19 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Fullscreen: {}", window->is_fullscreen() ? "ON" : "OFF");
         }
 
+        if (input->is_key_just_pressed(platform::KeyCode::T)) {
+            render_system.set_wireframe(!render_system.is_wireframe());
+            REALCRAFT_LOG_INFO(core::log_category::GRAPHICS, "Wireframe: {}",
+                               render_system.is_wireframe() ? "ON" : "OFF");
+        }
+
+        if (input->is_key_just_pressed(platform::KeyCode::P)) {
+            auto& cycle = render_system.get_day_night_cycle();
+            cycle.set_paused(!cycle.is_paused());
+            REALCRAFT_LOG_INFO(core::log_category::GRAPHICS, "Day-night cycle: {}",
+                               cycle.is_paused() ? "PAUSED" : "RUNNING");
+        }
+
         // Capture mouse on left click
         if (input->is_mouse_button_just_pressed(platform::MouseButton::Left)) {
             if (!input->is_mouse_captured()) {
@@ -127,44 +178,62 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
                 REALCRAFT_LOG_INFO(core::log_category::INPUT, "Mouse captured");
             }
         }
+
+        // Build camera movement input
+        glm::vec3 move_input(0.0f);
+        bool sprinting = input->is_key_pressed(platform::KeyCode::LeftControl);
+
+        // Movement
+        if (input->is_key_pressed(platform::KeyCode::W)) {
+            move_input.z += 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::S)) {
+            move_input.z -= 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::D)) {
+            move_input.x += 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::A)) {
+            move_input.x -= 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::Space)) {
+            move_input.y += 1.0f;
+        }
+        if (input->is_key_pressed(platform::KeyCode::LeftShift)) {
+            move_input.y -= 1.0f;
+        }
+
+        // Mouse look (only when captured)
+        if (input->is_mouse_captured()) {
+            auto mouse_delta = input->get_mouse_delta();
+            float sensitivity = render_system.get_camera().get_config().mouse_sensitivity;
+            render_system.get_camera().rotate(-static_cast<float>(mouse_delta.y) * sensitivity,
+                                              static_cast<float>(mouse_delta.x) * sensitivity);
+        }
+
+        // Apply camera movement
+        render_system.get_camera().process_movement(move_input, static_cast<float>(dt), sprinting);
+
+        // Update player position for chunk loading
+        auto camera_pos = render_system.get_camera().get_position();
+        world_manager.set_player_position(camera_pos);
+
+        // Update world (chunk loading/unloading)
+        world_manager.update(dt);
+
+        // Update render system
+        render_system.update(dt);
     });
 
     // Render callback
-    engine.set_render_callback([&engine, &total_time](double /*interpolation*/) {
-        auto* device = engine.get_graphics_device();
-
-        device->begin_frame();
-
-        auto cmd = device->create_command_buffer();
-        cmd->begin();
-
-        auto* swap_chain = device->get_swap_chain();
-        if (swap_chain && swap_chain->get_current_texture()) {
-            // Animated clear color (cycles through rainbow)
-            float r = 0.5f + 0.5f * std::sin(static_cast<float>(total_time));
-            float g = 0.5f + 0.5f * std::sin(static_cast<float>(total_time) + 2.094f);
-            float b = 0.5f + 0.5f * std::sin(static_cast<float>(total_time) + 4.189f);
-
-            graphics::RenderPassDesc pass_desc;
-            pass_desc.color_attachments.push_back(
-                {graphics::TextureFormat::BGRA8Unorm, graphics::LoadOp::Clear, graphics::StoreOp::Store});
-
-            graphics::ClearValue color_clear;
-            color_clear.color = {r, g, b, 1.0f};
-            graphics::ClearValue depth_clear;
-
-            cmd->begin_render_pass(pass_desc, swap_chain->get_current_texture(), nullptr, color_clear, depth_clear);
-            cmd->end_render_pass();
-        }
-
-        cmd->end();
-        device->submit(cmd.get(), false);
-
-        device->end_frame();
-    });
+    engine.set_render_callback([&render_system](double interpolation) { render_system.render(interpolation); });
 
     // Run the engine (blocks until exit)
     engine.run();
+
+    // Cleanup
+    render_system.shutdown();
+    world_manager.shutdown();
 
     return 0;
 }
