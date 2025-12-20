@@ -203,8 +203,7 @@ struct TreeGenerator::Impl {
         int32_t canopy_end = trunk_height + 1;
 
         for (int32_t y = canopy_start; y <= canopy_end; ++y) {
-            // Radius varies with height (smaller at top and bottom)
-            int32_t y_from_center = std::abs(y - (canopy_start + canopy_end) / 2);
+            // Radius is smaller at top and bottom
             int32_t radius = tmpl.canopy_radius;
             if (y == canopy_start || y == canopy_end) {
                 radius = std::max(1, radius - 1);

@@ -278,13 +278,10 @@ std::optional<LocalBlockPos> StructureGenerator::get_structure_position(const Ch
         Impl::hash_chunk(chunk_pos.x, chunk_pos.y, impl_->config.seed + static_cast<uint32_t>(type) * 1000 + 500);
 
     // Position within chunk (leave margin from edges)
-    int32_t margin = 4;
-    int32_t range_x = CHUNK_SIZE_X - 2 * margin;
-    int32_t range_z = CHUNK_SIZE_Z - 2 * margin;
-
-    if (range_x <= 0 || range_z <= 0) {
-        return std::nullopt;
-    }
+    constexpr int32_t margin = 4;
+    constexpr int32_t range_x = CHUNK_SIZE_X - 2 * margin;
+    constexpr int32_t range_z = CHUNK_SIZE_Z - 2 * margin;
+    static_assert(range_x > 0 && range_z > 0, "Chunk size too small for structure margin");
 
     int32_t x = margin + static_cast<int32_t>(hash % static_cast<uint32_t>(range_x));
     int32_t z = margin + static_cast<int32_t>((hash >> 10) % static_cast<uint32_t>(range_z));
