@@ -8,6 +8,7 @@ set(WORLD_SOURCES
     chunk_data.cpp
     origin_shifter.cpp
     serialization.cpp
+    terrain_generator.cpp
     world_manager.cpp
 )
 
@@ -23,6 +24,7 @@ target_link_libraries(realcraft_world
         spdlog::spdlog
         $<IF:$<TARGET_EXISTS:zstd::libzstd_static>,zstd::libzstd_static,zstd::libzstd_shared>
         glm::glm
+        FastNoise
 )
 
 # Include directories
