@@ -183,7 +183,6 @@ TEST(VoxelVertexTest, ArrayOfVertices) {
     std::vector<VoxelVertex> vertices(1000);
 
     // Should be contiguous for GPU upload
-    VoxelVertex* data = vertices.data();
     for (size_t i = 0; i < vertices.size() - 1; i++) {
         ptrdiff_t diff = reinterpret_cast<char*>(&vertices[i + 1]) - reinterpret_cast<char*>(&vertices[i]);
         EXPECT_EQ(diff, 36);  // 36 bytes per vertex

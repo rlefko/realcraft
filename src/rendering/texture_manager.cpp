@@ -52,7 +52,9 @@ void TextureManager::generate_block_textures() {
     const auto& registry = world::BlockRegistry::instance();
 
     // Get all block types and generate textures
-    for (world::BlockId id = 0; id < registry.count(); id++) {
+    const size_t count = registry.count();
+    for (size_t i = 0; i < count; i++) {
+        auto id = static_cast<world::BlockId>(i);
         const auto* block = registry.get(id);
         if (!block)
             continue;

@@ -40,7 +40,7 @@ void ProceduralTextureGenerator::blend_colors(uint32_t c1, uint32_t c2, float t,
 std::vector<uint8_t> ProceduralTextureGenerator::generate(uint32_t width, uint32_t height, uint32_t color_primary,
                                                           uint32_t color_secondary, TexturePattern pattern,
                                                           uint32_t seed) {
-    std::vector<uint8_t> data(width * height * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(width) * height * 4);
 
     for (uint32_t y = 0; y < height; y++) {
         for (uint32_t x = 0; x < width; x++) {
@@ -122,7 +122,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generate(uint32_t width, uint32
 }
 
 std::vector<uint8_t> ProceduralTextureGenerator::generate_stone(uint32_t size, uint32_t seed) {
-    std::vector<uint8_t> data(size * size * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(size) * size * 4);
 
     for (uint32_t y = 0; y < size; y++) {
         for (uint32_t x = 0; x < size; x++) {
@@ -150,7 +150,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generate_stone(uint32_t size, u
 }
 
 std::vector<uint8_t> ProceduralTextureGenerator::generate_dirt(uint32_t size, uint32_t seed) {
-    std::vector<uint8_t> data(size * size * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(size) * size * 4);
 
     for (uint32_t y = 0; y < size; y++) {
         for (uint32_t x = 0; x < size; x++) {
@@ -171,7 +171,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generate_dirt(uint32_t size, ui
 }
 
 std::vector<uint8_t> ProceduralTextureGenerator::generate_grass_top(uint32_t size, uint32_t seed) {
-    std::vector<uint8_t> data(size * size * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(size) * size * 4);
 
     for (uint32_t y = 0; y < size; y++) {
         for (uint32_t x = 0; x < size; x++) {
@@ -192,7 +192,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generate_grass_top(uint32_t siz
 }
 
 std::vector<uint8_t> ProceduralTextureGenerator::generate_grass_side(uint32_t size, uint32_t seed) {
-    std::vector<uint8_t> data(size * size * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(size) * size * 4);
 
     for (uint32_t y = 0; y < size; y++) {
         for (uint32_t x = 0; x < size; x++) {
@@ -224,7 +224,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generate_grass_side(uint32_t si
 }
 
 std::vector<uint8_t> ProceduralTextureGenerator::generate_sand(uint32_t size, uint32_t seed) {
-    std::vector<uint8_t> data(size * size * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(size) * size * 4);
 
     for (uint32_t y = 0; y < size; y++) {
         for (uint32_t x = 0; x < size; x++) {
@@ -245,7 +245,7 @@ std::vector<uint8_t> ProceduralTextureGenerator::generate_sand(uint32_t size, ui
 }
 
 std::vector<uint8_t> ProceduralTextureGenerator::generate_water(uint32_t size, uint32_t seed) {
-    std::vector<uint8_t> data(size * size * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(size) * size * 4);
 
     for (uint32_t y = 0; y < size; y++) {
         for (uint32_t x = 0; x < size; x++) {

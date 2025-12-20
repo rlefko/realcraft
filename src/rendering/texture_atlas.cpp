@@ -22,7 +22,7 @@ uint16_t TextureAtlas::add_texture(std::string_view name, uint32_t width, uint32
         return UINT16_MAX;
     }
 
-    if (rgba_data.size() != width * height * 4) {
+    if (rgba_data.size() != static_cast<size_t>(width) * height * 4) {
         REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Invalid texture data size for {}: expected {}, got {}", name,
                             width * height * 4, rgba_data.size());
         return UINT16_MAX;
@@ -42,7 +42,7 @@ uint16_t TextureAtlas::add_texture(std::string_view name, uint32_t width, uint32
 }
 
 uint16_t TextureAtlas::add_solid_color(std::string_view name, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    std::vector<uint8_t> data(desc_.tile_size * desc_.tile_size * 4);
+    std::vector<uint8_t> data(static_cast<size_t>(desc_.tile_size) * desc_.tile_size * 4);
     for (size_t i = 0; i < data.size(); i += 4) {
         data[i + 0] = r;
         data[i + 1] = g;
@@ -147,7 +147,7 @@ bool TextureAtlas::build() {
     }
 
     // Create atlas data and copy textures
-    std::vector<uint8_t> atlas_data(desc_.atlas_size * desc_.atlas_size * 4 * num_layers, 0);
+    std::vector<uint8_t> atlas_data(static_cast<size_t>(desc_.atlas_size) * desc_.atlas_size * 4 * num_layers, 0);
 
     for (size_t i = 0; i < staged_textures_.size(); i++) {
         const auto& tex = staged_textures_[i];
@@ -159,7 +159,7 @@ bool TextureAtlas::build() {
 
         // Copy texture data row by row
         for (uint32_t row = 0; row < tex.height; row++) {
-            size_t src_offset = row * tex.width * 4;
+            size_t src_offset = static_cast<size_t>(row) * tex.width * 4;
             size_t dst_offset =
                 (layer * desc_.atlas_size * desc_.atlas_size + (dst_y + row) * desc_.atlas_size + dst_x) * 4;
 
@@ -188,7 +188,7 @@ bool TextureAtlas::build() {
 
     for (uint32_t layer = 0; layer < num_layers; layer++) {
         graphics::BufferImageCopy region;
-        region.buffer_offset = layer * desc_.atlas_size * desc_.atlas_size * 4;
+        region.buffer_offset = static_cast<size_t>(layer) * desc_.atlas_size * desc_.atlas_size * 4;
         region.buffer_row_length = desc_.atlas_size;
         region.buffer_image_height = desc_.atlas_size;
         region.texture_offset_x = 0;
