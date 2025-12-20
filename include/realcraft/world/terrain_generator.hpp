@@ -6,6 +6,7 @@
 #include "biome.hpp"
 #include "chunk.hpp"
 #include "climate.hpp"
+#include "erosion.hpp"
 #include "types.hpp"
 
 #include <array>
@@ -84,6 +85,9 @@ struct TerrainConfig {
         ClimateConfig climate;               // Climate noise parameters
         bool apply_height_modifiers = true;  // Apply per-biome height modifiers
     } biome_system;
+
+    // Erosion system configuration
+    ErosionConfig erosion;
 };
 
 // ============================================================================

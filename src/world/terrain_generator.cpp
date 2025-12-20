@@ -7,6 +7,8 @@
 #include <realcraft/world/biome.hpp>
 #include <realcraft/world/block.hpp>
 #include <realcraft/world/climate.hpp>
+#include <realcraft/world/erosion.hpp>
+#include <realcraft/world/erosion_heightmap.hpp>
 #include <realcraft/world/terrain_generator.hpp>
 #include <utility>
 
@@ -29,6 +31,9 @@ struct TerrainGenerator::Impl {
 
     // Climate map for biome determination (thread-safe)
     std::unique_ptr<ClimateMap> climate_map;
+
+    // Erosion simulator (CPU-only for now, GPU requires device)
+    std::unique_ptr<ErosionSimulator> erosion_simulator;
 
     void build_nodes() {
         // Continental terrain (large scale shapes using FBm)
@@ -87,6 +92,13 @@ struct TerrainGenerator::Impl {
             climate_map = std::make_unique<ClimateMap>(climate_cfg);
         } else {
             climate_map.reset();
+        }
+
+        // Erosion simulator (CPU-only, no graphics device)
+        if (config.erosion.enabled) {
+            erosion_simulator = std::make_unique<ErosionSimulator>(nullptr);
+        } else {
+            erosion_simulator.reset();
         }
     }
 
@@ -206,6 +218,14 @@ void TerrainGenerator::generate(Chunk& chunk) const {
     const BlockId fallback_sand_id = block_registry.sand_id();
     const BlockId water_id = block_registry.water_id();
 
+    // Sediment block IDs (for erosion deposits)
+    const auto silt_id_opt = block_registry.find_id("realcraft:silt");
+    const auto alluvium_id_opt = block_registry.find_id("realcraft:alluvium");
+    const auto river_gravel_id_opt = block_registry.find_id("realcraft:river_gravel");
+    const BlockId silt_id = silt_id_opt.value_or(fallback_sand_id);
+    const BlockId alluvium_id = alluvium_id_opt.value_or(fallback_dirt_id);
+    const BlockId river_gravel_id = river_gravel_id_opt.value_or(fallback_sand_id);
+
     const ChunkPos chunk_pos = chunk.get_position();
     const int64_t base_x = static_cast<int64_t>(chunk_pos.x) * CHUNK_SIZE_X;
     const int64_t base_z = static_cast<int64_t>(chunk_pos.y) * CHUNK_SIZE_Z;
@@ -215,6 +235,30 @@ void TerrainGenerator::generate(Chunk& chunk) const {
     for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
         for (int x = 0; x < CHUNK_SIZE_X; ++x) {
             heights[static_cast<size_t>(z * CHUNK_SIZE_X + x)] = impl_->compute_height(base_x + x, base_z + z);
+        }
+    }
+
+    // Apply erosion if enabled
+    // Track sediment for block type selection
+    std::array<float, CHUNK_SIZE_X * CHUNK_SIZE_Z> sediment_levels{};
+    if (impl_->erosion_simulator && impl_->config.erosion.enabled) {
+        // Create erosion heightmap with border for cross-chunk context
+        ErosionHeightmap erosion_map(CHUNK_SIZE_X, CHUNK_SIZE_Z, impl_->config.erosion.border_size);
+        erosion_map.populate_from_generator(*this, chunk_pos);
+
+        // Run erosion simulation
+        impl_->erosion_simulator->simulate(erosion_map, impl_->config.erosion, impl_->config.seed);
+
+        // Apply eroded heights back to the heights array
+        erosion_map.apply_to_heights(heights);
+
+        // Extract sediment levels for block type selection
+        const int32_t border = erosion_map.border();
+        for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
+            for (int x = 0; x < CHUNK_SIZE_X; ++x) {
+                sediment_levels[static_cast<size_t>(z * CHUNK_SIZE_X + x)] =
+                    erosion_map.get_sediment(x + border, z + border);
+            }
         }
     }
 
@@ -229,6 +273,9 @@ void TerrainGenerator::generate(Chunk& chunk) const {
             const int32_t surface_height = heights[static_cast<size_t>(z * CHUNK_SIZE_X + x)];
             const int64_t world_x = base_x + x;
             const int64_t world_z = base_z + z;
+
+            // Get sediment level for this column
+            const float sediment = sediment_levels[static_cast<size_t>(z * CHUNK_SIZE_X + x)];
 
             // Get biome and block palette for this column
             BiomeBlockPalette palette;
@@ -260,6 +307,20 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                 palette.stone_block = fallback_stone_id;
             }
 
+            // Override surface blocks with sediment blocks if there's significant deposit
+            BlockId sediment_surface = palette.surface_block;
+            BlockId sediment_subsurface = palette.subsurface_block;
+            if (sediment >= impl_->config.erosion.sediment.gravel_threshold) {
+                sediment_surface = river_gravel_id;
+                sediment_subsurface = river_gravel_id;
+            } else if (sediment >= impl_->config.erosion.sediment.alluvium_threshold) {
+                sediment_surface = alluvium_id;
+                sediment_subsurface = alluvium_id;
+            } else if (sediment >= impl_->config.erosion.sediment.silt_threshold) {
+                sediment_surface = silt_id;
+                sediment_subsurface = silt_id;
+            }
+
             for (int y = 0; y < CHUNK_SIZE_Y; ++y) {
                 BlockId block_id = BLOCK_AIR;
 
@@ -275,16 +336,16 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                         // Deep underground - stone
                         block_id = palette.stone_block;
                     } else if (y < surface_height) {
-                        // Near surface - subsurface layer (dirt)
-                        block_id = palette.subsurface_block;
+                        // Near surface - subsurface layer (use sediment if applicable)
+                        block_id = sediment_subsurface;
                     } else if (y == surface_height) {
-                        // Surface block - depends on height relative to sea level
+                        // Surface block - depends on height and sediment
                         if (surface_height <= impl_->config.sea_level) {
-                            // At or below sea level - underwater block (sand)
-                            block_id = palette.underwater_block;
+                            // At or below sea level - use sediment or underwater block
+                            block_id = (sediment > 0) ? sediment_surface : palette.underwater_block;
                         } else {
-                            // Above sea level - surface block (grass)
-                            block_id = palette.surface_block;
+                            // Above sea level - use sediment or surface block
+                            block_id = (sediment > 0) ? sediment_surface : palette.surface_block;
                         }
                     }
                 } else if (y <= impl_->config.sea_level && y > surface_height) {

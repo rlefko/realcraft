@@ -1,0 +1,191 @@
+#version 450
+
+// Compute shader for hydraulic erosion simulation
+// Each thread simulates one water droplet
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+// Heightmap buffer (read/write)
+layout(std430, set = 0, binding = 0) buffer HeightmapBuffer {
+    float heightmap[];
+};
+
+// Sediment buffer (read/write)
+layout(std430, set = 0, binding = 1) buffer SedimentBuffer {
+    float sediment[];
+};
+
+// Erosion parameters
+layout(std140, set = 0, binding = 2) uniform ErosionParams {
+    int map_width;
+    int map_height;
+    float inertia;
+    float sediment_capacity;
+    float min_sediment_capacity;
+    float erosion_rate;
+    float deposition_rate;
+    float gravity;
+    float evaporation_rate;
+    int max_lifetime;
+    int erosion_radius;
+    uint seed;
+    int droplet_offset;
+};
+
+// PCG random number generator (good statistical properties, fast)
+uint pcg_hash(uint input) {
+    uint state = input * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+float random_float(inout uint rng_state) {
+    rng_state = pcg_hash(rng_state);
+    return float(rng_state) / 4294967295.0;
+}
+
+// Get heightmap index from 2D coordinates
+int get_index(int x, int z) {
+    return z * map_width + x;
+}
+
+// Sample height using bilinear interpolation
+float sample_height(float x, float z) {
+    // Clamp to valid range
+    x = clamp(x, 0.0, float(map_width - 2));
+    z = clamp(z, 0.0, float(map_height - 2));
+
+    int ix = int(x);
+    int iz = int(z);
+    float fx = x - float(ix);
+    float fz = z - float(iz);
+
+    float h00 = heightmap[get_index(ix, iz)];
+    float h10 = heightmap[get_index(ix + 1, iz)];
+    float h01 = heightmap[get_index(ix, iz + 1)];
+    float h11 = heightmap[get_index(ix + 1, iz + 1)];
+
+    float h0 = mix(h00, h10, fx);
+    float h1 = mix(h01, h11, fx);
+    return mix(h0, h1, fz);
+}
+
+// Calculate terrain gradient at a point
+vec2 calculate_gradient(float x, float z) {
+    float h = sample_height(x, z);
+    float hx = sample_height(x + 1.0, z);
+    float hz = sample_height(x, z + 1.0);
+    return vec2(hx - h, hz - h);
+}
+
+void main() {
+    uint droplet_id = gl_GlobalInvocationID.x + uint(droplet_offset);
+    uint rng_state = seed ^ droplet_id;
+
+    // Initialize droplet at random position
+    float pos_x = random_float(rng_state) * float(map_width - 3) + 1.0;
+    float pos_z = random_float(rng_state) * float(map_height - 3) + 1.0;
+    float dir_x = 0.0;
+    float dir_z = 0.0;
+    float speed = 1.0;
+    float water = 1.0;
+    float sed = 0.0;
+
+    for (int i = 0; i < max_lifetime; ++i) {
+        int node_x = int(pos_x);
+        int node_z = int(pos_z);
+        float cell_offset_x = pos_x - float(node_x);
+        float cell_offset_z = pos_z - float(node_z);
+
+        float height = sample_height(pos_x, pos_z);
+        vec2 gradient = calculate_gradient(pos_x, pos_z);
+
+        // Update direction with inertia
+        dir_x = dir_x * inertia - gradient.x * (1.0 - inertia);
+        dir_z = dir_z * inertia - gradient.y * (1.0 - inertia);
+
+        // Normalize direction
+        float len = sqrt(dir_x * dir_x + dir_z * dir_z);
+        if (len > 0.0001) {
+            dir_x /= len;
+            dir_z /= len;
+        } else {
+            // Random direction if on flat terrain
+            float angle = random_float(rng_state) * 6.28318530718;
+            dir_x = cos(angle);
+            dir_z = sin(angle);
+        }
+
+        float new_pos_x = pos_x + dir_x;
+        float new_pos_z = pos_z + dir_z;
+
+        // Bounds check
+        if (new_pos_x < 1.0 || new_pos_x >= float(map_width - 2) ||
+            new_pos_z < 1.0 || new_pos_z >= float(map_height - 2)) {
+            break;
+        }
+
+        float new_height = sample_height(new_pos_x, new_pos_z);
+        float delta_height = new_height - height;
+
+        // Calculate sediment capacity
+        float capacity = max(-delta_height * speed * water * sediment_capacity, min_sediment_capacity);
+
+        // Bilinear weights for the four corners
+        float w00 = (1.0 - cell_offset_x) * (1.0 - cell_offset_z);
+        float w10 = cell_offset_x * (1.0 - cell_offset_z);
+        float w01 = (1.0 - cell_offset_x) * cell_offset_z;
+        float w11 = cell_offset_x * cell_offset_z;
+
+        int idx00 = get_index(node_x, node_z);
+        int idx10 = get_index(node_x + 1, node_z);
+        int idx01 = get_index(node_x, node_z + 1);
+        int idx11 = get_index(node_x + 1, node_z + 1);
+
+        if (sed > capacity || delta_height > 0.0) {
+            // Deposit sediment
+            float amount;
+            if (delta_height > 0.0) {
+                amount = min(delta_height, sed);
+            } else {
+                amount = (sed - capacity) * deposition_rate;
+            }
+            sed -= amount;
+
+            // Atomic add to heightmap (distributed to 4 corners)
+            // Note: atomicAdd for floats requires extensions, using regular add
+            // In production, use proper atomic operations or tiled approach
+            heightmap[idx00] += amount * w00;
+            heightmap[idx10] += amount * w10;
+            heightmap[idx01] += amount * w01;
+            heightmap[idx11] += amount * w11;
+
+            // Track sediment deposition
+            sediment[idx00] += amount * w00;
+            sediment[idx10] += amount * w10;
+            sediment[idx01] += amount * w01;
+            sediment[idx11] += amount * w11;
+        } else {
+            // Erode terrain
+            float amount = min((capacity - sed) * erosion_rate, -delta_height);
+            sed += amount;
+
+            // Simple bilinear erosion (for radius > 0, CPU handles better)
+            heightmap[idx00] -= amount * w00;
+            heightmap[idx10] -= amount * w10;
+            heightmap[idx01] -= amount * w01;
+            heightmap[idx11] -= amount * w11;
+        }
+
+        // Update droplet physics
+        speed = sqrt(max(0.0, speed * speed + delta_height * gravity));
+        water *= (1.0 - evaporation_rate);
+        pos_x = new_pos_x;
+        pos_z = new_pos_z;
+
+        // Stop if water evaporated
+        if (water < 0.01) {
+            break;
+        }
+    }
+}
