@@ -6,6 +6,7 @@
 #include <cmath>
 #include <realcraft/world/biome.hpp>
 #include <realcraft/world/block.hpp>
+#include <realcraft/world/cave_generator.hpp>
 #include <realcraft/world/climate.hpp>
 #include <realcraft/world/erosion.hpp>
 #include <realcraft/world/erosion_heightmap.hpp>
@@ -34,6 +35,9 @@ struct TerrainGenerator::Impl {
 
     // Erosion simulator (CPU-only for now, GPU requires device)
     std::unique_ptr<ErosionSimulator> erosion_simulator;
+
+    // Cave generator (thread-safe noise-based cave carving)
+    std::unique_ptr<CaveGenerator> cave_generator;
 
     void build_nodes() {
         // Continental terrain (large scale shapes using FBm)
@@ -99,6 +103,15 @@ struct TerrainGenerator::Impl {
             erosion_simulator = std::make_unique<ErosionSimulator>(nullptr);
         } else {
             erosion_simulator.reset();
+        }
+
+        // Cave generator
+        if (config.caves.enabled) {
+            CaveConfig cave_cfg = config.caves;
+            cave_cfg.seed = config.seed;  // Use same seed as terrain
+            cave_generator = std::make_unique<CaveGenerator>(cave_cfg);
+        } else {
+            cave_generator.reset();
         }
     }
 
@@ -226,6 +239,18 @@ void TerrainGenerator::generate(Chunk& chunk) const {
     const BlockId alluvium_id = alluvium_id_opt.value_or(fallback_dirt_id);
     const BlockId river_gravel_id = river_gravel_id_opt.value_or(fallback_sand_id);
 
+    // Cave decoration block IDs
+    const auto stalactite_id_opt = block_registry.find_id("realcraft:stalactite");
+    const auto stalagmite_id_opt = block_registry.find_id("realcraft:stalagmite");
+    const auto crystal_id_opt = block_registry.find_id("realcraft:crystal");
+    const auto cave_moss_id_opt = block_registry.find_id("realcraft:cave_moss");
+    const auto glowing_mushroom_id_opt = block_registry.find_id("realcraft:glowing_mushroom");
+    const BlockId stalactite_id = stalactite_id_opt.value_or(BLOCK_AIR);
+    const BlockId stalagmite_id = stalagmite_id_opt.value_or(BLOCK_AIR);
+    const BlockId crystal_id = crystal_id_opt.value_or(BLOCK_AIR);
+    const BlockId cave_moss_id = cave_moss_id_opt.value_or(BLOCK_AIR);
+    const BlockId glowing_mushroom_id = glowing_mushroom_id_opt.value_or(BLOCK_AIR);
+
     const ChunkPos chunk_pos = chunk.get_position();
     const int64_t base_x = static_cast<int64_t>(chunk_pos.x) * CHUNK_SIZE_X;
     const int64_t base_z = static_cast<int64_t>(chunk_pos.y) * CHUNK_SIZE_Z;
@@ -327,7 +352,13 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                 // Check density for this voxel (for caves/overhangs)
                 float density = impl_->compute_density(world_x, y, world_z, surface_height);
 
-                if (density > 0) {
+                // Check for cave carving (Perlin worms and chambers)
+                bool carved_by_cave = false;
+                if (impl_->cave_generator && density > 0 && y > 0) {
+                    carved_by_cave = impl_->cave_generator->should_carve(world_x, y, world_z, surface_height);
+                }
+
+                if (density > 0 && !carved_by_cave) {
                     // Solid block - determine type based on depth
                     if (y == 0) {
                         // Bottom layer - could be bedrock in future
@@ -348,6 +379,12 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                             block_id = (sediment > 0) ? sediment_surface : palette.surface_block;
                         }
                     }
+                } else if (carved_by_cave) {
+                    // Cave carved - check if flooded
+                    if (impl_->cave_generator->is_flooded(world_x, y, world_z)) {
+                        block_id = water_id;
+                    }
+                    // else: air (default)
                 } else if (y <= impl_->config.sea_level && y > surface_height) {
                     // Air pocket but below sea level - fill with water
                     block_id = water_id;
@@ -356,6 +393,75 @@ void TerrainGenerator::generate(Chunk& chunk) const {
 
                 if (block_id != BLOCK_AIR) {
                     lock.set_block(LocalBlockPos(x, y, z), block_id);
+                }
+            }
+        }
+    }
+
+    // Cave decoration pass (place stalactites, stalagmites, crystals, moss, mushrooms)
+    if (impl_->cave_generator && impl_->config.caves.decorations.enabled) {
+        for (int z = 0; z < CHUNK_SIZE_Z; ++z) {
+            for (int x = 0; x < CHUNK_SIZE_X; ++x) {
+                const int64_t world_x = base_x + x;
+                const int64_t world_z = base_z + z;
+
+                for (int y = impl_->config.caves.min_y; y < impl_->config.caves.max_y && y < CHUNK_SIZE_Y - 1; ++y) {
+                    BlockId current = lock.get_block(LocalBlockPos(x, y, z));
+
+                    // Skip non-air blocks
+                    if (current != BLOCK_AIR) {
+                        continue;
+                    }
+
+                    // Check for cave surfaces
+                    BlockId above = (y + 1 < CHUNK_SIZE_Y) ? lock.get_block(LocalBlockPos(x, y + 1, z)) : BLOCK_AIR;
+                    BlockId below = (y > 0) ? lock.get_block(LocalBlockPos(x, y - 1, z)) : BLOCK_AIR;
+
+                    bool has_ceiling = (above != BLOCK_AIR && above != water_id);
+                    bool has_floor = (below != BLOCK_AIR && below != water_id);
+
+                    // Stalactites hang from ceiling (stone above, air at current position)
+                    if (has_ceiling && stalactite_id != BLOCK_AIR) {
+                        if (impl_->cave_generator->should_place_stalactite(world_x, y, world_z)) {
+                            lock.set_block(LocalBlockPos(x, y, z), stalactite_id);
+                            continue;
+                        }
+                    }
+
+                    // Stalagmites rise from floor (stone below, air at current position)
+                    if (has_floor && stalagmite_id != BLOCK_AIR) {
+                        if (impl_->cave_generator->should_place_stalagmite(world_x, y, world_z)) {
+                            lock.set_block(LocalBlockPos(x, y, z), stalagmite_id);
+                            continue;
+                        }
+                    }
+
+                    // Crystals in deep caves on floor
+                    if (has_floor && y < 40 && crystal_id != BLOCK_AIR) {
+                        if (impl_->cave_generator->should_place_crystal(world_x, y, world_z)) {
+                            lock.set_block(LocalBlockPos(x, y, z), crystal_id);
+                            continue;
+                        }
+                    }
+
+                    // Check if in damp area for moss/mushrooms
+                    bool is_damp = impl_->cave_generator->is_damp_area(world_x, y, world_z);
+
+                    // Cave moss on walls/floor in damp areas
+                    if (is_damp && has_floor && cave_moss_id != BLOCK_AIR) {
+                        if (impl_->cave_generator->should_place_moss(world_x, y, world_z)) {
+                            lock.set_block(LocalBlockPos(x, y, z), cave_moss_id);
+                            continue;
+                        }
+                    }
+
+                    // Glowing mushrooms in damp areas
+                    if (is_damp && has_floor && glowing_mushroom_id != BLOCK_AIR) {
+                        if (impl_->cave_generator->should_place_mushroom(world_x, y, world_z)) {
+                            lock.set_block(LocalBlockPos(x, y, z), glowing_mushroom_id);
+                            continue;
+                        }
+                    }
                 }
             }
         }

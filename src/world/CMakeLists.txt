@@ -5,6 +5,7 @@ set(WORLD_SOURCES
     biome.cpp
     block.cpp
     block_registry.cpp
+    cave_generator.cpp
     chunk.cpp
     chunk_data.cpp
     climate.cpp
