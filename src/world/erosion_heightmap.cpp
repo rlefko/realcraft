@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <realcraft/world/erosion_context.hpp>
 #include <realcraft/world/erosion_heightmap.hpp>
 #include <realcraft/world/terrain_generator.hpp>
 
@@ -219,6 +220,153 @@ bool ErosionHeightmap::is_in_core(int32_t x, int32_t z) const {
 
 size_t ErosionHeightmap::index(int32_t x, int32_t z) const {
     return static_cast<size_t>(z) * static_cast<size_t>(total_width_) + static_cast<size_t>(x);
+}
+
+// ============================================================================
+// Cross-Chunk Border Exchange
+// ============================================================================
+
+void ErosionHeightmap::store_original_heights() {
+    original_heights_ = heights_;
+}
+
+void ErosionHeightmap::compute_border_region(HorizontalDirection dir, int32_t& start_x, int32_t& start_z,
+                                             int32_t& width, int32_t& height) const {
+    switch (dir) {
+        case HorizontalDirection::NegX:
+            // Left border: x in [0, border), z in [border, border+chunk_height)
+            start_x = 0;
+            start_z = border_;
+            width = border_;
+            height = chunk_height_;
+            break;
+        case HorizontalDirection::PosX:
+            // Right border: x in [border+chunk_width, total_width), z in [border, border+chunk_height)
+            start_x = border_ + chunk_width_;
+            start_z = border_;
+            width = border_;
+            height = chunk_height_;
+            break;
+        case HorizontalDirection::NegZ:
+            // Top border: x in [border, border+chunk_width), z in [0, border)
+            start_x = border_;
+            start_z = 0;
+            width = chunk_width_;
+            height = border_;
+            break;
+        case HorizontalDirection::PosZ:
+            // Bottom border: x in [border, border+chunk_width), z in [border+chunk_height, total_height)
+            start_x = border_;
+            start_z = border_ + chunk_height_;
+            width = chunk_width_;
+            height = border_;
+            break;
+        default:
+            start_x = start_z = width = height = 0;
+            break;
+    }
+}
+
+void ErosionHeightmap::import_border_heights(HorizontalDirection from_dir, const std::vector<float>& deltas) {
+    int32_t start_x = 0;
+    int32_t start_z = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    compute_border_region(from_dir, start_x, start_z, width, height);
+
+    const size_t expected_size = static_cast<size_t>(width) * static_cast<size_t>(height);
+    if (deltas.size() != expected_size) {
+        return;
+    }
+
+    for (int32_t z = 0; z < height; ++z) {
+        for (int32_t x = 0; x < width; ++x) {
+            const size_t src_idx = static_cast<size_t>(z * width + x);
+            add_height(start_x + x, start_z + z, deltas[src_idx]);
+        }
+    }
+}
+
+void ErosionHeightmap::import_border_sediment(HorizontalDirection from_dir, const std::vector<float>& sediment_data) {
+    int32_t start_x = 0;
+    int32_t start_z = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    compute_border_region(from_dir, start_x, start_z, width, height);
+
+    const size_t expected_size = static_cast<size_t>(width) * static_cast<size_t>(height);
+    if (sediment_data.size() != expected_size) {
+        return;
+    }
+
+    for (int32_t z = 0; z < height; ++z) {
+        for (int32_t x = 0; x < width; ++x) {
+            const size_t src_idx = static_cast<size_t>(z * width + x);
+            add_sediment(start_x + x, start_z + z, sediment_data[src_idx]);
+        }
+    }
+}
+
+void ErosionHeightmap::import_border_flow(HorizontalDirection from_dir, const std::vector<float>& flow_data) {
+    int32_t start_x = 0;
+    int32_t start_z = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    compute_border_region(from_dir, start_x, start_z, width, height);
+
+    const size_t expected_size = static_cast<size_t>(width) * static_cast<size_t>(height);
+    if (flow_data.size() != expected_size) {
+        return;
+    }
+
+    for (int32_t z = 0; z < height; ++z) {
+        for (int32_t x = 0; x < width; ++x) {
+            const size_t src_idx = static_cast<size_t>(z * width + x);
+            // Add imported flow to existing flow (accumulate from neighbor)
+            const float current_flow = get_flow(start_x + x, start_z + z);
+            set_flow(start_x + x, start_z + z, current_flow + flow_data[src_idx]);
+        }
+    }
+}
+
+ErosionBorderData ErosionHeightmap::export_border_data(HorizontalDirection direction) const {
+    ErosionBorderData data;
+    data.direction = direction;
+
+    int32_t start_x = 0;
+    int32_t start_z = 0;
+    int32_t width = 0;
+    int32_t height = 0;
+    compute_border_region(direction, start_x, start_z, width, height);
+
+    data.width = width;
+    data.depth = height;
+
+    const size_t total_size = static_cast<size_t>(width) * static_cast<size_t>(height);
+    data.height_deltas.resize(total_size);
+    data.sediment_values.resize(total_size);
+    data.flow_values.resize(total_size);
+
+    const bool has_original = !original_heights_.empty();
+
+    for (int32_t z = 0; z < height; ++z) {
+        for (int32_t x = 0; x < width; ++x) {
+            const size_t dst_idx = static_cast<size_t>(z * width + x);
+            const size_t src_idx = index(start_x + x, start_z + z);
+
+            // Compute height delta (erosion/deposition since original)
+            if (has_original && src_idx < original_heights_.size()) {
+                data.height_deltas[dst_idx] = heights_[src_idx] - original_heights_[src_idx];
+            } else {
+                data.height_deltas[dst_idx] = 0.0f;
+            }
+
+            data.sediment_values[dst_idx] = sediment_[src_idx];
+            data.flow_values[dst_idx] = flow_[src_idx];
+        }
+    }
+
+    return data;
 }
 
 }  // namespace realcraft::world

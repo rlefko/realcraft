@@ -10,6 +10,11 @@
 #include <cstdint>
 #include <vector>
 
+// Forward declaration
+namespace realcraft::world {
+struct ErosionBorderData;
+}
+
 namespace realcraft::world {
 
 // Forward declaration
@@ -92,6 +97,33 @@ public:
     void compute_flow_accumulation();
 
     // ========================================================================
+    // Cross-Chunk Border Exchange
+    // ========================================================================
+
+    /// Import height changes from a neighbor chunk's border
+    /// @param from_dir Direction the data is coming from (which neighbor)
+    /// @param deltas Height deltas (current - original) from neighbor's border
+    void import_border_heights(HorizontalDirection from_dir, const std::vector<float>& deltas);
+
+    /// Import sediment from a neighbor chunk's border
+    /// @param from_dir Direction the data is coming from
+    /// @param sediment_data Sediment values from neighbor's border
+    void import_border_sediment(HorizontalDirection from_dir, const std::vector<float>& sediment_data);
+
+    /// Import flow accumulation from a neighbor chunk's border
+    /// @param from_dir Direction the data is coming from
+    /// @param flow_data Flow values from neighbor's border
+    void import_border_flow(HorizontalDirection from_dir, const std::vector<float>& flow_data);
+
+    /// Export this chunk's border data for a given direction
+    /// @param direction Which border to export (NegX, PosX, NegZ, PosZ)
+    /// @return Border data containing height deltas, sediment, and flow
+    [[nodiscard]] struct ErosionBorderData export_border_data(HorizontalDirection direction) const;
+
+    /// Store original heights after population (for computing deltas)
+    void store_original_heights();
+
+    // ========================================================================
     // Dimensions
     // ========================================================================
 
@@ -142,9 +174,15 @@ private:
     std::vector<float> heights_;
     std::vector<float> sediment_;
     std::vector<float> flow_;
+    std::vector<float> original_heights_;  // Heights before erosion, for computing deltas
 
     /// Convert 2D coordinates to linear index
     [[nodiscard]] size_t index(int32_t x, int32_t z) const;
+
+    /// Compute border region coordinates for a given direction
+    /// Returns start_x, start_z, width, height of the border strip
+    void compute_border_region(HorizontalDirection dir, int32_t& start_x, int32_t& start_z, int32_t& width,
+                               int32_t& height) const;
 };
 
 }  // namespace realcraft::world

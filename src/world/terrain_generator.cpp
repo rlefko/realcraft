@@ -9,6 +9,7 @@
 #include <realcraft/world/cave_generator.hpp>
 #include <realcraft/world/climate.hpp>
 #include <realcraft/world/erosion.hpp>
+#include <realcraft/world/erosion_context.hpp>
 #include <realcraft/world/erosion_heightmap.hpp>
 #include <realcraft/world/ore_generator.hpp>
 #include <realcraft/world/structure_generator.hpp>
@@ -39,6 +40,9 @@ struct TerrainGenerator::Impl {
 
     // Erosion simulator (CPU-only for now, GPU requires device)
     std::unique_ptr<ErosionSimulator> erosion_simulator;
+
+    // Erosion context for cross-chunk border exchange (not owned)
+    ErosionContext* erosion_context = nullptr;
 
     // Cave generator (thread-safe noise-based cave carving)
     std::unique_ptr<CaveGenerator> cave_generator;
@@ -249,6 +253,22 @@ struct TerrainGenerator::Impl {
 
         return density - config.density.threshold;
     }
+
+    /// Helper to select between two blocks based on blend factor with deterministic noise
+    [[nodiscard]] BlockId select_blended_block(BlockId primary, BlockId secondary, float blend_factor, int64_t world_x,
+                                               int64_t world_z) const {
+        if (blend_factor < 0.01f || primary == secondary) {
+            return primary;
+        }
+
+        // Use deterministic hash for consistent results across calls
+        auto hash = static_cast<uint32_t>(world_x * 73856093) ^ static_cast<uint32_t>(world_z * 19349663) ^ config.seed;
+        hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
+        hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
+        float noise = static_cast<float>(hash & 0xFFFF) / 65535.0f;
+
+        return (noise < blend_factor) ? secondary : primary;
+    }
 };
 
 // ============================================================================
@@ -318,8 +338,34 @@ void TerrainGenerator::generate(Chunk& chunk) const {
         ErosionHeightmap erosion_map(CHUNK_SIZE_X, CHUNK_SIZE_Z, impl_->config.erosion.border_size);
         erosion_map.populate_from_generator(*this, chunk_pos);
 
+        // Store original heights for computing deltas after erosion
+        erosion_map.store_original_heights();
+
+        // Import border data from already-generated neighbor chunks
+        if (impl_->erosion_context) {
+            for (int dir = 0; dir < static_cast<int>(HorizontalDirection::Count); ++dir) {
+                auto hdir = static_cast<HorizontalDirection>(dir);
+                auto neighbor_data = impl_->erosion_context->get_neighbor_border(chunk_pos, hdir);
+                if (neighbor_data) {
+                    erosion_map.import_border_heights(hdir, neighbor_data->height_deltas);
+                    erosion_map.import_border_sediment(hdir, neighbor_data->sediment_values);
+                    erosion_map.import_border_flow(hdir, neighbor_data->flow_values);
+                }
+            }
+        }
+
         // Run erosion simulation
         impl_->erosion_simulator->simulate(erosion_map, impl_->config.erosion, impl_->config.seed);
+
+        // Export border data for future neighbor chunks
+        if (impl_->erosion_context) {
+            for (int dir = 0; dir < static_cast<int>(HorizontalDirection::Count); ++dir) {
+                auto hdir = static_cast<HorizontalDirection>(dir);
+                auto border_data = erosion_map.export_border_data(hdir);
+                border_data.source_chunk = chunk_pos;
+                impl_->erosion_context->submit_border_data(border_data);
+            }
+        }
 
         // Apply eroded heights back to the heights array
         erosion_map.apply_to_heights(heights);
@@ -349,23 +395,40 @@ void TerrainGenerator::generate(Chunk& chunk) const {
             // Get sediment level for this column
             const float sediment = sediment_levels[static_cast<size_t>(z * CHUNK_SIZE_X + x)];
 
-            // Get biome and block palette for this column
-            BiomeBlockPalette palette;
+            // Get biome with blend info for smooth transitions
+            BiomeBlockPalette primary_palette;
+            BiomeBlockPalette secondary_palette;
             BiomeType biome = BiomeType::Plains;
+            float blend_factor = 0.0f;
 
             if (impl_->climate_map) {
-                biome = impl_->climate_map->get_biome(world_x, world_z, static_cast<float>(surface_height));
-                palette = biome_registry.get_palette(biome);
+                // Use blended sampling for smooth biome transitions
+                BiomeBlend blend =
+                    impl_->climate_map->sample_blended(world_x, world_z, static_cast<float>(surface_height));
+                biome = blend.primary_biome;
+                blend_factor = blend.blend_factor;
+
+                primary_palette = biome_registry.get_palette(blend.primary_biome);
+                secondary_palette = biome_registry.get_palette(blend.secondary_biome);
 
                 // Handle invalid palette entries by using fallback blocks
-                if (palette.surface_block == BLOCK_INVALID)
-                    palette.surface_block = fallback_grass_id;
-                if (palette.subsurface_block == BLOCK_INVALID)
-                    palette.subsurface_block = fallback_dirt_id;
-                if (palette.underwater_block == BLOCK_INVALID)
-                    palette.underwater_block = fallback_sand_id;
-                if (palette.stone_block == BLOCK_INVALID)
-                    palette.stone_block = fallback_stone_id;
+                if (primary_palette.surface_block == BLOCK_INVALID)
+                    primary_palette.surface_block = fallback_grass_id;
+                if (primary_palette.subsurface_block == BLOCK_INVALID)
+                    primary_palette.subsurface_block = fallback_dirt_id;
+                if (primary_palette.underwater_block == BLOCK_INVALID)
+                    primary_palette.underwater_block = fallback_sand_id;
+                if (primary_palette.stone_block == BLOCK_INVALID)
+                    primary_palette.stone_block = fallback_stone_id;
+
+                if (secondary_palette.surface_block == BLOCK_INVALID)
+                    secondary_palette.surface_block = fallback_grass_id;
+                if (secondary_palette.subsurface_block == BLOCK_INVALID)
+                    secondary_palette.subsurface_block = fallback_dirt_id;
+                if (secondary_palette.underwater_block == BLOCK_INVALID)
+                    secondary_palette.underwater_block = fallback_sand_id;
+                if (secondary_palette.stone_block == BLOCK_INVALID)
+                    secondary_palette.stone_block = fallback_stone_id;
 
                 // Record center biome for chunk metadata
                 if (x == center_x && z == center_z) {
@@ -373,15 +436,29 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                 }
             } else {
                 // Biome system disabled - use fallback palette
-                palette.surface_block = fallback_grass_id;
-                palette.subsurface_block = fallback_dirt_id;
-                palette.underwater_block = fallback_sand_id;
-                palette.stone_block = fallback_stone_id;
+                primary_palette.surface_block = fallback_grass_id;
+                primary_palette.subsurface_block = fallback_dirt_id;
+                primary_palette.underwater_block = fallback_sand_id;
+                primary_palette.stone_block = fallback_stone_id;
+                secondary_palette = primary_palette;
             }
 
+            // Pre-compute blended block selections for this column
+            BlockId blended_surface = impl_->select_blended_block(
+                primary_palette.surface_block, secondary_palette.surface_block, blend_factor, world_x, world_z);
+            BlockId blended_subsurface =
+                impl_->select_blended_block(primary_palette.subsurface_block, secondary_palette.subsurface_block,
+                                            blend_factor, world_x, world_z + 10000);  // Different hash
+            BlockId blended_underwater =
+                impl_->select_blended_block(primary_palette.underwater_block, secondary_palette.underwater_block,
+                                            blend_factor, world_x, world_z + 20000);  // Different hash
+            BlockId blended_stone =
+                impl_->select_blended_block(primary_palette.stone_block, secondary_palette.stone_block, blend_factor,
+                                            world_x, world_z + 30000);  // Different hash
+
             // Override surface blocks with sediment blocks if there's significant deposit
-            BlockId sediment_surface = palette.surface_block;
-            BlockId sediment_subsurface = palette.subsurface_block;
+            BlockId sediment_surface = blended_surface;
+            BlockId sediment_subsurface = blended_subsurface;
             if (sediment >= impl_->config.erosion.sediment.gravel_threshold) {
                 sediment_surface = river_gravel_id;
                 sediment_subsurface = river_gravel_id;
@@ -409,10 +486,10 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                     // Solid block - determine type based on depth
                     if (y == 0) {
                         // Bottom layer - could be bedrock in future
-                        block_id = palette.stone_block;
+                        block_id = blended_stone;
                     } else if (y < surface_height - impl_->config.dirt_depth) {
                         // Deep underground - stone
-                        block_id = palette.stone_block;
+                        block_id = blended_stone;
                     } else if (y < surface_height) {
                         // Near surface - subsurface layer (use sediment if applicable)
                         block_id = sediment_subsurface;
@@ -420,10 +497,10 @@ void TerrainGenerator::generate(Chunk& chunk) const {
                         // Surface block - depends on height and sediment
                         if (surface_height <= impl_->config.sea_level) {
                             // At or below sea level - use sediment or underwater block
-                            block_id = (sediment > 0) ? sediment_surface : palette.underwater_block;
+                            block_id = (sediment > 0) ? sediment_surface : blended_underwater;
                         } else {
                             // Above sea level - use sediment or surface block
-                            block_id = (sediment > 0) ? sediment_surface : palette.surface_block;
+                            block_id = (sediment > 0) ? sediment_surface : blended_surface;
                         }
                     }
                 } else if (carved_by_cave) {
@@ -753,6 +830,14 @@ BiomeBlend TerrainGenerator::get_biome_blend(int64_t world_x, int64_t world_z) c
     }
     int32_t height = impl_->compute_height(world_x, world_z);
     return impl_->climate_map->sample_blended(world_x, world_z, static_cast<float>(height));
+}
+
+void TerrainGenerator::set_erosion_context(ErosionContext* context) {
+    impl_->erosion_context = context;
+}
+
+ErosionContext* TerrainGenerator::get_erosion_context() const {
+    return impl_->erosion_context;
 }
 
 }  // namespace realcraft::world

@@ -45,6 +45,7 @@ add_executable(realcraft_world_tests
     unit/world/biome_test.cpp
     unit/world/block_test.cpp
     unit/world/cave_test.cpp
+    unit/world/chunk_border_test.cpp
     unit/world/chunk_data_test.cpp
     unit/world/chunk_test.cpp
     unit/world/climate_test.cpp

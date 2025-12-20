@@ -71,6 +71,21 @@ struct CPUErosionEngine::Impl {
             // Check bounds (leave 1 cell margin)
             if (new_pos_x < 1.0f || new_pos_x >= total_width - 2.0f || new_pos_z < 1.0f ||
                 new_pos_z >= total_height - 2.0f) {
+                // Deposit remaining sediment at boundary instead of discarding
+                if (sediment > 0.0f) {
+                    const float deposit = sediment * 0.5f;  // Deposit half at boundary
+                    const float w00 = (1.0f - cell_offset_x) * (1.0f - cell_offset_z);
+                    const float w10 = cell_offset_x * (1.0f - cell_offset_z);
+                    const float w01 = (1.0f - cell_offset_x) * cell_offset_z;
+                    const float w11 = cell_offset_x * cell_offset_z;
+
+                    std::lock_guard<std::mutex> lock(heightmap_mutex);
+                    heightmap.add_height(node_x, node_z, deposit * w00);
+                    heightmap.add_height(node_x + 1, node_z, deposit * w10);
+                    heightmap.add_height(node_x, node_z + 1, deposit * w01);
+                    heightmap.add_height(node_x + 1, node_z + 1, deposit * w11);
+                    heightmap.deposit_sediment_bilinear(pos_x, pos_z, deposit);
+                }
                 break;
             }
 

@@ -10,6 +10,7 @@ set(WORLD_SOURCES
     chunk_data.cpp
     climate.cpp
     erosion.cpp
+    erosion_context.cpp
     erosion_cpu.cpp
     erosion_gpu.cpp
     erosion_heightmap.cpp

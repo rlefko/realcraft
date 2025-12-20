@@ -20,6 +20,9 @@
 
 namespace realcraft::world {
 
+// Forward declaration
+class ErosionContext;
+
 // ============================================================================
 // Terrain Configuration
 // ============================================================================
@@ -165,6 +168,17 @@ public:
 
     /// Reinitialize noise nodes with current config (call after set_config)
     void rebuild_nodes();
+
+    // ========================================================================
+    // Cross-Chunk Erosion Context
+    // ========================================================================
+
+    /// Set erosion context for seamless cross-chunk erosion
+    /// @param context Shared context for border data exchange (not owned)
+    void set_erosion_context(ErosionContext* context);
+
+    /// Get current erosion context
+    [[nodiscard]] ErosionContext* get_erosion_context() const;
 
 private:
     struct Impl;
