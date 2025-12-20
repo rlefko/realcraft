@@ -123,6 +123,8 @@ bool PhysicsWorld::initialize(world::WorldManager* world_manager, const PhysicsC
     }
 
     impl_->config = config;
+    // The WorldManager must outlive the PhysicsWorld - caller is responsible for lifetime management
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->world_manager = world_manager;
 
     if (!impl_->initialize_bullet()) {

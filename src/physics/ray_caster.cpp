@@ -296,6 +296,8 @@ VoxelRayCaster::VoxelRayCaster() : impl_(std::make_unique<Impl>()) {}
 VoxelRayCaster::~VoxelRayCaster() = default;
 
 void VoxelRayCaster::set_world_manager(world::WorldManager* world_manager) {
+    // The WorldManager must outlive the VoxelRayCaster - caller is responsible for lifetime management
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->world_manager = world_manager;
 }
 

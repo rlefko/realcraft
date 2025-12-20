@@ -70,13 +70,13 @@ TEST_F(AABBColliderTest, CollisionLayers) {
 }
 
 TEST_F(AABBColliderTest, UserData) {
-    int test_data = 42;
+    static int test_data = 42;
     desc.user_data = &test_data;
 
     AABBCollider collider(1, desc);
     EXPECT_EQ(collider.get_user_data(), &test_data);
 
-    int other_data = 123;
+    static int other_data = 123;
     collider.set_user_data(&other_data);
     EXPECT_EQ(collider.get_user_data(), &other_data);
 }
