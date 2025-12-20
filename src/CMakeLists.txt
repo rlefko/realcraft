@@ -16,6 +16,9 @@ add_subdirectory(world)
 # Add rendering subdirectory (builds realcraft::rendering library)
 add_subdirectory(rendering)
 
+# Add physics subdirectory (builds realcraft::physics library)
+add_subdirectory(physics)
+
 add_executable(realcraft
     main.cpp
 )
@@ -33,6 +36,7 @@ target_link_libraries(realcraft
         realcraft::core
         realcraft::world
         realcraft::rendering
+        realcraft::physics
 )
 
 # Include directories
