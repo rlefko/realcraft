@@ -187,7 +187,11 @@ bool StructuralIntegritySystem::initialize(PhysicsWorld* physics_world, world::W
         return false;
     }
 
+    // The PhysicsWorld and WorldManager must outlive the StructuralIntegritySystem
+    // - caller is responsible for lifetime management
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->physics_world = physics_world;
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->world_manager = world_manager;
     impl_->config = config;
 
