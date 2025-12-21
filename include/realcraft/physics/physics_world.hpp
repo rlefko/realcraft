@@ -5,6 +5,7 @@
 
 #include "chunk_collider.hpp"
 #include "colliders.hpp"
+#include "debris_system.hpp"
 #include "ray_caster.hpp"
 #include "rigid_body.hpp"
 #include "structural_integrity.hpp"
@@ -170,6 +171,13 @@ public:
 
     [[nodiscard]] StructuralIntegritySystem* get_structural_integrity();
     [[nodiscard]] const StructuralIntegritySystem* get_structural_integrity() const;
+
+    // ========================================================================
+    // Debris System
+    // ========================================================================
+
+    [[nodiscard]] DebrisSystem* get_debris_system();
+    [[nodiscard]] const DebrisSystem* get_debris_system() const;
 
 private:
     struct Impl;

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <mutex>
 #include <realcraft/core/logger.hpp>
+#include <realcraft/physics/impact_damage.hpp>
 #include <realcraft/physics/physics_world.hpp>
 #include <realcraft/world/block.hpp>
 #include <unordered_map>
@@ -58,6 +59,12 @@ struct PhysicsWorld::Impl {
 
     // Structural integrity system
     std::unique_ptr<StructuralIntegritySystem> structural_integrity;
+
+    // Debris system
+    std::unique_ptr<DebrisSystem> debris_system;
+
+    // Impact damage handler
+    std::unique_ptr<DefaultImpactDamageHandler> impact_handler;
 
     bool initialize_bullet() {
         // Create collision configuration
@@ -173,6 +180,15 @@ bool PhysicsWorld::initialize(world::WorldManager* world_manager, const PhysicsC
         world_manager->add_observer(impl_->structural_integrity.get());
     }
 
+    // Initialize debris system
+    impl_->debris_system = std::make_unique<DebrisSystem>();
+    DebrisConfig debris_config;
+    impl_->debris_system->initialize(this, world_manager, debris_config);
+
+    // Initialize default impact damage handler
+    impl_->impact_handler = std::make_unique<DefaultImpactDamageHandler>(world_manager);
+    impl_->debris_system->set_impact_damage_handler(impl_->impact_handler.get());
+
     impl_->initialized = true;
     REALCRAFT_LOG_INFO(core::log_category::PHYSICS, "PhysicsWorld initialized");
 
@@ -183,6 +199,15 @@ void PhysicsWorld::shutdown() {
     if (!impl_->initialized) {
         return;
     }
+
+    // Shutdown debris system
+    if (impl_->debris_system) {
+        impl_->debris_system->shutdown();
+        impl_->debris_system.reset();
+    }
+
+    // Shutdown impact handler
+    impl_->impact_handler.reset();
 
     // Shutdown structural integrity system
     if (impl_->structural_integrity) {
@@ -262,6 +287,70 @@ void PhysicsWorld::fixed_update(double fixed_delta) {
     // Update structural integrity system
     if (impl_->structural_integrity) {
         impl_->structural_integrity->update(fixed_delta);
+    }
+
+    // Update debris system
+    if (impl_->debris_system) {
+        impl_->debris_system->update(fixed_delta);
+    }
+
+    // Process debris collisions for impact damage
+    if (impl_->debris_system) {
+        int num_manifolds = impl_->dispatcher->getNumManifolds();
+        for (int i = 0; i < num_manifolds; ++i) {
+            btPersistentManifold* manifold = impl_->dispatcher->getManifoldByIndexInternal(i);
+            if (!manifold) {
+                continue;
+            }
+
+            const btCollisionObject* obj_a = manifold->getBody0();
+            const btCollisionObject* obj_b = manifold->getBody1();
+
+            // Get rigid body handles
+            RigidBodyHandle handle_a = static_cast<RigidBodyHandle>(obj_a->getUserIndex());
+            RigidBodyHandle handle_b = static_cast<RigidBodyHandle>(obj_b->getUserIndex());
+
+            // Check if either is debris
+            bool a_is_debris = impl_->debris_system->is_debris(handle_a);
+            bool b_is_debris = impl_->debris_system->is_debris(handle_b);
+
+            if (!a_is_debris && !b_is_debris) {
+                continue;
+            }
+
+            for (int j = 0; j < manifold->getNumContacts(); ++j) {
+                const btManifoldPoint& pt = manifold->getContactPoint(j);
+                if (pt.getDistance() < 0.0f) {
+                    glm::dvec3 contact_point(pt.getPositionWorldOnA().getX(), pt.getPositionWorldOnA().getY(),
+                                             pt.getPositionWorldOnA().getZ());
+                    glm::dvec3 contact_normal(pt.m_normalWorldOnB.getX(), pt.m_normalWorldOnB.getY(),
+                                              pt.m_normalWorldOnB.getZ());
+
+                    // Calculate impact velocity
+                    double impact_velocity = 0.0;
+                    const btRigidBody* body_a = btRigidBody::upcast(obj_a);
+                    const btRigidBody* body_b = btRigidBody::upcast(obj_b);
+
+                    if (body_a && body_b) {
+                        btVector3 rel_vel = body_a->getLinearVelocity() - body_b->getLinearVelocity();
+                        impact_velocity = static_cast<double>(std::abs(rel_vel.dot(
+                            btVector3(static_cast<btScalar>(contact_normal.x), static_cast<btScalar>(contact_normal.y),
+                                      static_cast<btScalar>(contact_normal.z)))));
+                    } else if (body_a) {
+                        impact_velocity = static_cast<double>(std::abs(body_a->getLinearVelocity().dot(
+                            btVector3(static_cast<btScalar>(contact_normal.x), static_cast<btScalar>(contact_normal.y),
+                                      static_cast<btScalar>(contact_normal.z)))));
+                    } else if (body_b) {
+                        impact_velocity = static_cast<double>(std::abs(body_b->getLinearVelocity().dot(
+                            btVector3(static_cast<btScalar>(contact_normal.x), static_cast<btScalar>(contact_normal.y),
+                                      static_cast<btScalar>(contact_normal.z)))));
+                    }
+
+                    impl_->debris_system->on_collision(handle_a, handle_b, contact_point, contact_normal,
+                                                       impact_velocity);
+                }
+            }
+        }
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -716,6 +805,18 @@ StructuralIntegritySystem* PhysicsWorld::get_structural_integrity() {
 
 const StructuralIntegritySystem* PhysicsWorld::get_structural_integrity() const {
     return impl_->structural_integrity.get();
+}
+
+// ============================================================================
+// Debris System
+// ============================================================================
+
+DebrisSystem* PhysicsWorld::get_debris_system() {
+    return impl_->debris_system.get();
+}
+
+const DebrisSystem* PhysicsWorld::get_debris_system() const {
+    return impl_->debris_system.get();
 }
 
 }  // namespace realcraft::physics

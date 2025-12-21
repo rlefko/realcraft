@@ -4,6 +4,10 @@
 set(PHYSICS_SOURCES
     colliders.cpp
     chunk_collider.cpp
+    convex_hull_generator.cpp
+    debris_system.cpp
+    fragmentation.cpp
+    impact_damage.cpp
     physics_world.cpp
     player_controller.cpp
     ray_caster.cpp

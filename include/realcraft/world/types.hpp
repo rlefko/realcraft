@@ -23,6 +23,7 @@ using BlockStateId = uint16_t;
 
 // Special block IDs
 inline constexpr BlockId BLOCK_AIR = 0;
+inline constexpr BlockId BLOCK_STONE = 1;  // Default solid block (registered as ID 1)
 inline constexpr BlockId BLOCK_INVALID = 0xFFFF;
 
 // ============================================================================
