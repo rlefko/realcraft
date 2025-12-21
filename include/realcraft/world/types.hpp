@@ -270,6 +270,112 @@ inline constexpr glm::ivec2 HORIZONTAL_DIRECTION_OFFSETS[4] = {{-1, 0}, {1, 0}, 
     }
 }
 
+// ============================================================================
+// Water State Encoding (for BlockStateId of water blocks)
+// ============================================================================
+//
+// BlockStateId bit layout for water (16 bits total):
+// Bits 0-3:   Water level (0-15, where 15 = full, 0 = empty/almost dry)
+// Bits 4-6:   Flow direction (0=none, 1=+X, 2=-X, 3=+Z, 4=-Z, 5=down, 6=up)
+// Bit 7:      Is source block (1 = infinite source, 0 = flowing)
+// Bits 8-11:  Pressure level (0-15, derived from depth)
+// Bits 12-15: Reserved for future use
+
+inline constexpr uint16_t WATER_LEVEL_MASK = 0x000F;     // bits 0-3
+inline constexpr uint16_t WATER_FLOW_DIR_MASK = 0x0070;  // bits 4-6
+inline constexpr uint16_t WATER_SOURCE_MASK = 0x0080;    // bit 7
+inline constexpr uint16_t WATER_PRESSURE_MASK = 0x0F00;  // bits 8-11
+
+inline constexpr uint8_t WATER_FULL_LEVEL = 15;
+inline constexpr uint8_t WATER_MIN_FLOW_LEVEL = 1;
+
+// Flow direction values (stored in bits 4-6)
+enum class WaterFlowDirection : uint8_t {
+    None = 0,
+    PosX = 1,  // East
+    NegX = 2,  // West
+    PosZ = 3,  // South
+    NegZ = 4,  // North
+    NegY = 5,  // Down (gravity)
+    PosY = 6   // Up (pressure-driven)
+};
+
+// Get water level (0-15)
+[[nodiscard]] inline uint8_t water_get_level(BlockStateId state) {
+    return static_cast<uint8_t>(state & WATER_LEVEL_MASK);
+}
+
+// Set water level (0-15)
+inline void water_set_level(BlockStateId& state, uint8_t level) {
+    state = static_cast<BlockStateId>((state & ~WATER_LEVEL_MASK) | (level & 0x0F));
+}
+
+// Get flow direction
+[[nodiscard]] inline WaterFlowDirection water_get_flow_direction(BlockStateId state) {
+    return static_cast<WaterFlowDirection>((state & WATER_FLOW_DIR_MASK) >> 4);
+}
+
+// Set flow direction
+inline void water_set_flow_direction(BlockStateId& state, WaterFlowDirection dir) {
+    state = static_cast<BlockStateId>((state & ~WATER_FLOW_DIR_MASK) | ((static_cast<uint8_t>(dir) & 0x07) << 4));
+}
+
+// Check if water is a source block (infinite)
+[[nodiscard]] inline bool water_is_source(BlockStateId state) {
+    return (state & WATER_SOURCE_MASK) != 0;
+}
+
+// Set source block flag
+inline void water_set_source(BlockStateId& state, bool is_source) {
+    if (is_source) {
+        state |= WATER_SOURCE_MASK;
+    } else {
+        state = static_cast<BlockStateId>(state & ~WATER_SOURCE_MASK);
+    }
+}
+
+// Get pressure level (0-15)
+[[nodiscard]] inline uint8_t water_get_pressure(BlockStateId state) {
+    return static_cast<uint8_t>((state & WATER_PRESSURE_MASK) >> 8);
+}
+
+// Set pressure level (0-15)
+inline void water_set_pressure(BlockStateId& state, uint8_t pressure) {
+    state = static_cast<BlockStateId>((state & ~WATER_PRESSURE_MASK) | ((pressure & 0x0F) << 8));
+}
+
+// Create a complete water state
+[[nodiscard]] inline BlockStateId water_make_state(uint8_t level, bool is_source,
+                                                   WaterFlowDirection flow = WaterFlowDirection::None,
+                                                   uint8_t pressure = 0) {
+    BlockStateId state = 0;
+    water_set_level(state, level);
+    water_set_source(state, is_source);
+    water_set_flow_direction(state, flow);
+    water_set_pressure(state, pressure);
+    return state;
+}
+
+// Convert flow direction to 3D vector
+[[nodiscard]] inline glm::ivec3 water_flow_to_offset(WaterFlowDirection dir) {
+    switch (dir) {
+        case WaterFlowDirection::PosX:
+            return {1, 0, 0};
+        case WaterFlowDirection::NegX:
+            return {-1, 0, 0};
+        case WaterFlowDirection::PosZ:
+            return {0, 0, 1};
+        case WaterFlowDirection::NegZ:
+            return {0, 0, -1};
+        case WaterFlowDirection::NegY:
+            return {0, -1, 0};
+        case WaterFlowDirection::PosY:
+            return {0, 1, 0};
+        default:
+            return {0, 0, 0};
+    }
+}
+
 }  // namespace realcraft::world
 
 // ============================================================================

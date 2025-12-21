@@ -63,6 +63,9 @@ struct PhysicsWorld::Impl {
     // Debris system
     std::unique_ptr<DebrisSystem> debris_system;
 
+    // Fluid simulation system
+    std::unique_ptr<FluidSimulation> fluid_simulation;
+
     // Impact damage handler
     std::unique_ptr<DefaultImpactDamageHandler> impact_handler;
 
@@ -189,6 +192,16 @@ bool PhysicsWorld::initialize(world::WorldManager* world_manager, const PhysicsC
     impl_->impact_handler = std::make_unique<DefaultImpactDamageHandler>(world_manager);
     impl_->debris_system->set_impact_damage_handler(impl_->impact_handler.get());
 
+    // Initialize fluid simulation system
+    impl_->fluid_simulation = std::make_unique<FluidSimulation>();
+    FluidSimulationConfig fluid_config;
+    impl_->fluid_simulation->initialize(this, world_manager, fluid_config);
+
+    // Register fluid simulation as world observer
+    if (world_manager) {
+        world_manager->add_observer(impl_->fluid_simulation.get());
+    }
+
     impl_->initialized = true;
     REALCRAFT_LOG_INFO(core::log_category::PHYSICS, "PhysicsWorld initialized");
 
@@ -198,6 +211,15 @@ bool PhysicsWorld::initialize(world::WorldManager* world_manager, const PhysicsC
 void PhysicsWorld::shutdown() {
     if (!impl_->initialized) {
         return;
+    }
+
+    // Shutdown fluid simulation system
+    if (impl_->fluid_simulation) {
+        if (impl_->world_manager) {
+            impl_->world_manager->remove_observer(impl_->fluid_simulation.get());
+        }
+        impl_->fluid_simulation->shutdown();
+        impl_->fluid_simulation.reset();
     }
 
     // Shutdown debris system
@@ -279,6 +301,49 @@ void PhysicsWorld::fixed_update(double fixed_delta) {
                     event.penetration_depth = static_cast<double>(-pt.getDistance());
 
                     impl_->collision_callback(event);
+                }
+            }
+        }
+    }
+
+    // Update fluid simulation system
+    if (impl_->fluid_simulation && impl_->fluid_simulation->is_enabled()) {
+        impl_->fluid_simulation->update(fixed_delta);
+
+        // Apply buoyancy and drag forces to all dynamic rigid bodies
+        std::lock_guard<std::mutex> lock(impl_->rigid_body_mutex);
+        for (auto& [handle, body] : impl_->rigid_bodies) {
+            if (body->get_motion_type() != MotionType::Dynamic) {
+                continue;
+            }
+
+            // Calculate and apply buoyancy force
+            glm::dvec3 buoyancy = impl_->fluid_simulation->calculate_buoyancy_force(*body);
+            if (glm::length(buoyancy) > 0.01) {
+                body->apply_central_force(buoyancy);
+            }
+
+            // Calculate and apply drag force for submerged objects
+            glm::dvec3 velocity = body->get_linear_velocity();
+            if (glm::length(velocity) > 0.01) {
+                AABB bounds = body->get_aabb();
+                double cross_section = bounds.half_extents().x * bounds.half_extents().z * 4.0;
+                glm::dvec3 drag =
+                    impl_->fluid_simulation->calculate_drag_force(velocity, cross_section, body->get_position());
+                if (glm::length(drag) > 0.01) {
+                    body->apply_central_force(drag);
+                }
+            }
+
+            // Apply current push force
+            double submerged = impl_->fluid_simulation->get_submerged_fraction(body->get_aabb());
+            if (submerged > 0.1) {
+                AABB bounds = body->get_aabb();
+                double cross_section = bounds.half_extents().x * bounds.half_extents().z * 4.0;
+                glm::dvec3 current =
+                    impl_->fluid_simulation->calculate_current_force(body->get_position(), cross_section * submerged);
+                if (glm::length(current) > 0.01) {
+                    body->apply_central_force(current);
                 }
             }
         }
@@ -817,6 +882,18 @@ DebrisSystem* PhysicsWorld::get_debris_system() {
 
 const DebrisSystem* PhysicsWorld::get_debris_system() const {
     return impl_->debris_system.get();
+}
+
+// ============================================================================
+// Fluid Simulation
+// ============================================================================
+
+FluidSimulation* PhysicsWorld::get_fluid_simulation() {
+    return impl_->fluid_simulation.get();
+}
+
+const FluidSimulation* PhysicsWorld::get_fluid_simulation() const {
+    return impl_->fluid_simulation.get();
 }
 
 }  // namespace realcraft::physics
