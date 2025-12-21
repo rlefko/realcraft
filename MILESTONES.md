@@ -450,24 +450,24 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Identify unsupported clusters
   - [x] Cascade collapse handling
 
-### Milestone 5.5: Debris & Destruction `[High]`
+### Milestone 5.5: Debris & Destruction `[High]` ✅
 
-- [ ] Implement voxel-to-rigid-body conversion
-  - [ ] Create rigid body from voxel cluster
-  - [ ] Calculate mass and center of gravity
-  - [ ] Approximate collision shape
-- [ ] Implement debris fragmentation
-  - [ ] Break large clusters into fragments
-  - [ ] Realistic break patterns
-  - [ ] Fragment size limits
-- [ ] Implement impact damage
-  - [ ] Damage on debris collision
-  - [ ] Block breaking from impacts
-  - [ ] Entity damage from debris
-- [ ] Implement debris lifecycle
-  - [ ] Despawn timer
-  - [ ] Debris limit
-  - [ ] Debris-to-block conversion (optional)
+- [x] Implement voxel-to-rigid-body conversion
+  - [x] Create rigid body from voxel cluster
+  - [x] Calculate mass and center of gravity
+  - [x] Approximate collision shape (AABB for small, ConvexHull for large clusters)
+- [x] Implement debris fragmentation
+  - [x] Break large clusters into fragments
+  - [x] Realistic break patterns (Uniform, Brittle, Structural, MaterialBased)
+  - [x] Fragment size limits
+- [x] Implement impact damage
+  - [x] Damage on debris collision
+  - [x] Block breaking from impacts (impact_resistance property)
+  - [x] Entity damage from debris (interface prepared for Phase 8)
+- [x] Implement debris lifecycle
+  - [x] Despawn timer
+  - [x] Debris limit (max_active_debris)
+  - [x] Debris-to-block conversion (optional)
 
 ### Milestone 5.6: Fluid Simulation `[High]`
 

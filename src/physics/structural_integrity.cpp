@@ -138,6 +138,9 @@ struct StructuralIntegritySystem::Impl {
 
     // Spawn debris for a collapse event
     void spawn_collapse_debris(const CollapseEvent& event) {
+        // Try to use the DebrisSystem if available
+        DebrisSystem* debris_system = physics_world ? physics_world->get_debris_system() : nullptr;
+
         size_t debris_spawned = 0;
 
         for (const auto& cluster : event.falling_clusters) {
@@ -145,25 +148,37 @@ struct StructuralIntegritySystem::Impl {
                 break;
             }
 
-            // Fragment large clusters
-            auto fragments = fragment_cluster(cluster);
+            if (debris_system) {
+                // Use the new DebrisSystem for advanced fragmentation and lifecycle
+                // Remove blocks from world first
+                remove_blocks_from_world(cluster.positions);
 
-            for (const auto& fragment : fragments) {
-                if (debris_spawned >= config.max_debris_per_frame) {
-                    break;
+                // Spawn debris using DebrisSystem (handles fragmentation internally)
+                auto handles = debris_system->spawn_debris_from_cluster(cluster);
+                debris_spawned += handles.size();
+                stats.total_debris_spawned += handles.size();
+                stats.total_blocks_collapsed += cluster.size();
+            } else {
+                // Fallback to legacy behavior
+                auto fragments = fragment_cluster(cluster);
+
+                for (const auto& fragment : fragments) {
+                    if (debris_spawned >= config.max_debris_per_frame) {
+                        break;
+                    }
+
+                    // Remove blocks from world
+                    remove_blocks_from_world(fragment.positions);
+
+                    // Create rigid body
+                    RigidBodyHandle handle = create_debris(fragment);
+                    if (handle != INVALID_RIGID_BODY) {
+                        ++debris_spawned;
+                        stats.total_debris_spawned++;
+                    }
+
+                    stats.total_blocks_collapsed += fragment.size();
                 }
-
-                // Remove blocks from world
-                remove_blocks_from_world(fragment.positions);
-
-                // Create rigid body
-                RigidBodyHandle handle = create_debris(fragment);
-                if (handle != INVALID_RIGID_BODY) {
-                    ++debris_spawned;
-                    stats.total_debris_spawned++;
-                }
-
-                stats.total_blocks_collapsed += fragment.size();
             }
         }
     }

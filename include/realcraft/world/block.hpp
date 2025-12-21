@@ -31,6 +31,9 @@ struct MaterialProperties {
     float brittleness = 0.0f;            // 0.0 = stable, 1.0 = fragile under stress
     bool requires_support = true;        // False for fluids, decorations, etc.
 
+    // Impact damage properties
+    float impact_resistance = 100.0f;  // Higher = harder to break from debris impact
+
     // Common material presets
     static MaterialProperties stone() {
         MaterialProperties m;
@@ -44,6 +47,7 @@ struct MaterialProperties {
         m.horizontal_cost = 1.2f;
         m.brittleness = 0.0f;
         m.requires_support = true;
+        m.impact_resistance = 200.0f;  // Very resistant to impact
         return m;
     }
 
@@ -59,6 +63,7 @@ struct MaterialProperties {
         m.horizontal_cost = 2.0f;
         m.brittleness = 0.1f;
         m.requires_support = true;
+        m.impact_resistance = 50.0f;  // Soft, easily damaged
         return m;
     }
 
@@ -74,6 +79,7 @@ struct MaterialProperties {
         m.horizontal_cost = 1.5f;
         m.brittleness = 0.05f;
         m.requires_support = true;
+        m.impact_resistance = 75.0f;  // Moderate resistance
         return m;
     }
 
@@ -89,6 +95,7 @@ struct MaterialProperties {
         m.horizontal_cost = 3.0f;
         m.brittleness = 0.3f;
         m.requires_support = true;
+        m.impact_resistance = 30.0f;  // Low resistance, crumbles easily
         return m;
     }
 
@@ -104,6 +111,7 @@ struct MaterialProperties {
         m.horizontal_cost = 2.0f;
         m.brittleness = 0.5f;
         m.requires_support = true;
+        m.impact_resistance = 10.0f;  // Very fragile, shatters on impact
         return m;
     }
 
@@ -119,6 +127,7 @@ struct MaterialProperties {
         m.horizontal_cost = 0.0f;
         m.brittleness = 0.0f;
         m.requires_support = false;
+        m.impact_resistance = 0.0f;  // Liquid, cannot be damaged
         return m;
     }
 };
