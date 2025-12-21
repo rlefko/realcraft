@@ -386,7 +386,10 @@ bool FluidSimulation::initialize(PhysicsWorld* physics_world, world::WorldManage
         return false;
     }
 
+    // PhysicsWorld owns this FluidSimulation and manages its lifetime
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->physics_world = physics_world;
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->world_manager = world_manager;
     impl_->config = config;
 
