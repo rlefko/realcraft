@@ -53,7 +53,11 @@ bool DebrisSystem::initialize(PhysicsWorld* physics_world, world::WorldManager* 
         return false;
     }
 
+    // PhysicsWorld and WorldManager must outlive the DebrisSystem
+    // Caller is responsible for lifetime management
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->physics_world = physics_world;
+    // NOLINTNEXTLINE(codeql-cpp/local-variable-address-stored-in-non-local-memory)
     impl_->world_manager = world_manager;
     impl_->config = config;
     impl_->initialized = true;
