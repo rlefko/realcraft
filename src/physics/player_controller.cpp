@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <realcraft/physics/fluid_simulation.hpp>
 #include <realcraft/physics/physics_world.hpp>
 #include <realcraft/physics/player_controller.hpp>
 #include <realcraft/world/block.hpp>
@@ -619,6 +620,19 @@ void PlayerController::fixed_update(double fixed_delta, const PlayerInput& input
 
     // Apply gravity
     impl_->apply_gravity(fixed_delta);
+
+    // Apply water current push when swimming
+    if (impl_->state == PlayerState::Swimming && impl_->physics_world) {
+        FluidSimulation* fluid = impl_->physics_world->get_fluid_simulation();
+        if (fluid && fluid->is_enabled()) {
+            // Get current velocity at player position
+            glm::dvec3 current_vel = fluid->get_current_velocity(impl_->position);
+
+            // Apply current as velocity influence (scaled for player mass ~70kg)
+            double current_influence = fixed_delta * 2.0;  // Stronger effect on player
+            impl_->velocity += current_vel * current_influence;
+        }
+    }
 
     // Calculate movement delta
     glm::dvec3 move_delta = impl_->velocity * fixed_delta;

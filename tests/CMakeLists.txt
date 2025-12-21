@@ -112,6 +112,7 @@ add_executable(realcraft_physics_tests
     unit/physics/player_controller_test.cpp
     unit/physics/rigid_body_test.cpp
     unit/physics/structural_integrity_test.cpp
+    unit/physics/fluid_simulation_test.cpp
 )
 
 target_link_libraries(realcraft_physics_tests

@@ -6,6 +6,7 @@
 #include "chunk_collider.hpp"
 #include "colliders.hpp"
 #include "debris_system.hpp"
+#include "fluid_simulation.hpp"
 #include "ray_caster.hpp"
 #include "rigid_body.hpp"
 #include "structural_integrity.hpp"
@@ -178,6 +179,13 @@ public:
 
     [[nodiscard]] DebrisSystem* get_debris_system();
     [[nodiscard]] const DebrisSystem* get_debris_system() const;
+
+    // ========================================================================
+    // Fluid Simulation
+    // ========================================================================
+
+    [[nodiscard]] FluidSimulation* get_fluid_simulation();
+    [[nodiscard]] const FluidSimulation* get_fluid_simulation() const;
 
 private:
     struct Impl;

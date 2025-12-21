@@ -371,7 +371,7 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 5: Physics Engine `[~]`
+## Phase 5: Physics Engine `[x]`
 
 **Goal:** Implement collision, rigid body dynamics, and structural integrity
 
@@ -469,24 +469,24 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Debris limit (max_active_debris)
   - [x] Debris-to-block conversion (optional)
 
-### Milestone 5.6: Fluid Simulation `[High]`
+### Milestone 5.6: Fluid Simulation `[High]` ✅
 
-- [ ] Implement cellular automata water
-  - [ ] Water level per block
-  - [ ] Flow to neighbors
-  - [ ] Infinite source blocks
-- [ ] Implement water pressure
-  - [ ] Pressure from depth
-  - [ ] Pressure-based flow rate
-  - [ ] Equalization
-- [ ] Implement buoyancy
-  - [ ] Buoyant force calculation
-  - [ ] Object density
-  - [ ] Floating/sinking behavior
-- [ ] Implement water currents
-  - [ ] Flow direction tracking
-  - [ ] Entity push from current
-  - [ ] Current visualization
+- [x] Implement cellular automata water
+  - [x] Water level per block
+  - [x] Flow to neighbors
+  - [x] Infinite source blocks
+- [x] Implement water pressure
+  - [x] Pressure from depth
+  - [x] Pressure-based flow rate
+  - [x] Equalization
+- [x] Implement buoyancy
+  - [x] Buoyant force calculation
+  - [x] Object density
+  - [x] Floating/sinking behavior
+- [x] Implement water currents
+  - [x] Flow direction tracking
+  - [x] Entity push from current
+  - [ ] Current visualization (deferred to rendering phase)
 
 ---
 
