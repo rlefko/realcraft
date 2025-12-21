@@ -56,6 +56,9 @@ struct PhysicsWorld::Impl {
     // Stats
     double last_step_time_ms = 0.0;
 
+    // Structural integrity system
+    std::unique_ptr<StructuralIntegritySystem> structural_integrity;
+
     bool initialize_bullet() {
         // Create collision configuration
         collision_config = std::make_unique<btDefaultCollisionConfiguration>();
@@ -160,6 +163,16 @@ bool PhysicsWorld::initialize(world::WorldManager* world_manager, const PhysicsC
         world_manager->add_observer(this);
     }
 
+    // Initialize structural integrity system
+    impl_->structural_integrity = std::make_unique<StructuralIntegritySystem>();
+    StructuralIntegrityConfig integrity_config;
+    impl_->structural_integrity->initialize(this, world_manager, integrity_config);
+
+    // Register structural integrity as world observer
+    if (world_manager) {
+        world_manager->add_observer(impl_->structural_integrity.get());
+    }
+
     impl_->initialized = true;
     REALCRAFT_LOG_INFO(core::log_category::PHYSICS, "PhysicsWorld initialized");
 
@@ -169,6 +182,15 @@ bool PhysicsWorld::initialize(world::WorldManager* world_manager, const PhysicsC
 void PhysicsWorld::shutdown() {
     if (!impl_->initialized) {
         return;
+    }
+
+    // Shutdown structural integrity system
+    if (impl_->structural_integrity) {
+        if (impl_->world_manager) {
+            impl_->world_manager->remove_observer(impl_->structural_integrity.get());
+        }
+        impl_->structural_integrity->shutdown();
+        impl_->structural_integrity.reset();
     }
 
     // Unregister from world manager
@@ -235,6 +257,11 @@ void PhysicsWorld::fixed_update(double fixed_delta) {
                 }
             }
         }
+    }
+
+    // Update structural integrity system
+    if (impl_->structural_integrity) {
+        impl_->structural_integrity->update(fixed_delta);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -677,6 +704,18 @@ PhysicsWorld::DebugStats PhysicsWorld::get_stats() const {
     stats.last_step_time_ms = impl_->last_step_time_ms;
 
     return stats;
+}
+
+// ============================================================================
+// Structural Integrity
+// ============================================================================
+
+StructuralIntegritySystem* PhysicsWorld::get_structural_integrity() {
+    return impl_->structural_integrity.get();
+}
+
+const StructuralIntegritySystem* PhysicsWorld::get_structural_integrity() const {
+    return impl_->structural_integrity.get();
 }
 
 }  // namespace realcraft::physics

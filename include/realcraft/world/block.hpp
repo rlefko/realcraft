@@ -25,18 +25,102 @@ struct MaterialProperties {
     float restitution = 0.0f;          // Bounciness (0-1)
     std::string sound_type = "stone";  // Sound category for footsteps, mining, etc.
 
+    // Structural integrity properties
+    float max_support_distance = 64.0f;  // Max blocks from ground before collapse
+    float horizontal_cost = 1.5f;        // Support distance cost for horizontal spans
+    float brittleness = 0.0f;            // 0.0 = stable, 1.0 = fragile under stress
+    bool requires_support = true;        // False for fluids, decorations, etc.
+
     // Common material presets
-    static MaterialProperties stone() { return {2500.0f, 1000.0f, 5.0f, 0.7f, 0.0f, "stone"}; }
+    static MaterialProperties stone() {
+        MaterialProperties m;
+        m.weight = 2500.0f;
+        m.strength = 1000.0f;
+        m.hardness = 5.0f;
+        m.friction = 0.7f;
+        m.restitution = 0.0f;
+        m.sound_type = "stone";
+        m.max_support_distance = 64.0f;
+        m.horizontal_cost = 1.2f;
+        m.brittleness = 0.0f;
+        m.requires_support = true;
+        return m;
+    }
 
-    static MaterialProperties dirt() { return {1500.0f, 200.0f, 1.5f, 0.6f, 0.0f, "dirt"}; }
+    static MaterialProperties dirt() {
+        MaterialProperties m;
+        m.weight = 1500.0f;
+        m.strength = 200.0f;
+        m.hardness = 1.5f;
+        m.friction = 0.6f;
+        m.restitution = 0.0f;
+        m.sound_type = "dirt";
+        m.max_support_distance = 16.0f;
+        m.horizontal_cost = 2.0f;
+        m.brittleness = 0.1f;
+        m.requires_support = true;
+        return m;
+    }
 
-    static MaterialProperties wood() { return {600.0f, 400.0f, 2.0f, 0.5f, 0.0f, "wood"}; }
+    static MaterialProperties wood() {
+        MaterialProperties m;
+        m.weight = 600.0f;
+        m.strength = 400.0f;
+        m.hardness = 2.0f;
+        m.friction = 0.5f;
+        m.restitution = 0.0f;
+        m.sound_type = "wood";
+        m.max_support_distance = 32.0f;
+        m.horizontal_cost = 1.5f;
+        m.brittleness = 0.05f;
+        m.requires_support = true;
+        return m;
+    }
 
-    static MaterialProperties sand() { return {1600.0f, 50.0f, 0.5f, 0.4f, 0.0f, "sand"}; }
+    static MaterialProperties sand() {
+        MaterialProperties m;
+        m.weight = 1600.0f;
+        m.strength = 50.0f;
+        m.hardness = 0.5f;
+        m.friction = 0.4f;
+        m.restitution = 0.0f;
+        m.sound_type = "sand";
+        m.max_support_distance = 2.0f;
+        m.horizontal_cost = 3.0f;
+        m.brittleness = 0.3f;
+        m.requires_support = true;
+        return m;
+    }
 
-    static MaterialProperties glass() { return {2500.0f, 50.0f, 0.3f, 0.5f, 0.0f, "glass"}; }
+    static MaterialProperties glass() {
+        MaterialProperties m;
+        m.weight = 2500.0f;
+        m.strength = 50.0f;
+        m.hardness = 0.3f;
+        m.friction = 0.5f;
+        m.restitution = 0.0f;
+        m.sound_type = "glass";
+        m.max_support_distance = 8.0f;
+        m.horizontal_cost = 2.0f;
+        m.brittleness = 0.5f;
+        m.requires_support = true;
+        return m;
+    }
 
-    static MaterialProperties water() { return {1000.0f, 0.0f, 0.0f, 0.0f, 0.0f, "water"}; }
+    static MaterialProperties water() {
+        MaterialProperties m;
+        m.weight = 1000.0f;
+        m.strength = 0.0f;
+        m.hardness = 0.0f;
+        m.friction = 0.0f;
+        m.restitution = 0.0f;
+        m.sound_type = "water";
+        m.max_support_distance = 0.0f;
+        m.horizontal_cost = 0.0f;
+        m.brittleness = 0.0f;
+        m.requires_support = false;
+        return m;
+    }
 };
 
 // ============================================================================
