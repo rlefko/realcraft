@@ -337,6 +337,10 @@ std::optional<std::string> ShaderCompiler::spirv_to_msl(std::span<const uint8_t>
     try {
         spirv_cross::CompilerMSL msl(std::move(spirv_words));
 
+        // Note: We use glm::perspectiveRH_ZO which already produces [0,1] depth range
+        // for Metal, so we do NOT enable fixup_clipspace (that would double-convert).
+        // Metal's NDC Y-axis is same as OpenGL, so no flip_vert_y needed.
+
         // Configure MSL options
         spirv_cross::CompilerMSL::Options msl_options;
         msl_options.platform = spirv_cross::CompilerMSL::Options::macOS;
@@ -344,10 +348,30 @@ std::optional<std::string> ShaderCompiler::spirv_to_msl(std::span<const uint8_t>
         msl_options.enable_decoration_binding = true;
         msl_options.argument_buffers = false;  // Use discrete resources for simplicity
 
-        // Remap push constants to buffer index 30 to avoid conflicts with uniform buffers
-        // Uniform buffers use indices 0, 1, 2, etc. based on their binding decorations
+        // Metal buffer index layout:
+        // - Indices 0-9: Reserved for vertex buffers
+        // - Indices 10-19: Uniform buffers (set 0, binding N -> buffer index 10+N)
+        // - Index 30: Push constants
+        constexpr uint32_t UNIFORM_BUFFER_BASE_INDEX = 10;
+
+        // Remap uniform buffers to indices 10+ to avoid collision with vertex buffers
+        // This handles set 0 bindings 0-9
+        for (uint32_t binding = 0; binding < 10; ++binding) {
+            spirv_cross::MSLResourceBinding ubo_binding;
+            ubo_binding.desc_set = 0;
+            ubo_binding.binding = binding;
+            ubo_binding.msl_buffer = UNIFORM_BUFFER_BASE_INDEX + binding;
+
+            ubo_binding.stage = spv::ExecutionModelVertex;
+            msl.add_msl_resource_binding(ubo_binding);
+
+            ubo_binding.stage = spv::ExecutionModelFragment;
+            msl.add_msl_resource_binding(ubo_binding);
+        }
+
+        // Remap push constants to buffer index 30 to avoid conflicts
         spirv_cross::MSLResourceBinding push_constant_binding;
-        push_constant_binding.stage = spv::ExecutionModelVertex;  // Applies to vertex stage
+        push_constant_binding.stage = spv::ExecutionModelVertex;
         push_constant_binding.desc_set = spirv_cross::kPushConstDescSet;
         push_constant_binding.binding = spirv_cross::kPushConstBinding;
         push_constant_binding.msl_buffer = 30;

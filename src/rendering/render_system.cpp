@@ -64,10 +64,10 @@ bool RenderSystem::initialize(core::Engine* engine, world::WorldManager* world, 
         return false;
     }
 
-    // Create depth buffer
+    // Create depth buffer (use framebuffer size for Retina displays)
     auto* window = engine_->get_window();
-    auto window_size = window->get_size();
-    if (!create_depth_texture(window_size.x, window_size.y)) {
+    auto fb_size = window->get_framebuffer_size();
+    if (!create_depth_texture(fb_size.x, fb_size.y)) {
         REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to create depth texture");
         shutdown();
         return false;
@@ -257,6 +257,8 @@ layout(push_constant) uniform PushConstants {
 
 void main() {
     vec3 world_pos = in_position.xyz + push.chunk_offset;
+
+    // Transform to clip space using view-projection matrix
     gl_Position = camera.view_projection * vec4(world_pos, 1.0);
 
     frag_position = world_pos;
@@ -482,8 +484,9 @@ bool RenderSystem::create_depth_texture(uint32_t width, uint32_t height) {
 
 void RenderSystem::update_uniform_buffers(double interpolation) {
     auto* window = engine_->get_window();
-    auto window_size = window->get_size();
-    float aspect = static_cast<float>(window_size.x) / static_cast<float>(window_size.y);
+    // Use framebuffer size for correct aspect ratio on Retina displays
+    auto fb_size = window->get_framebuffer_size();
+    float aspect = static_cast<float>(fb_size.x) / static_cast<float>(fb_size.y);
 
     // Camera uniforms
     CameraUniforms cam;
