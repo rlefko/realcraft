@@ -44,8 +44,9 @@ struct VoxelVertex {
         return {
             // location 0: position (vec4, xyz used, w=1)
             {0, 0, graphics::TextureFormat::RGBA32Float, 0},
-            // location 1: normal + ao (vec4 as bytes, interpreted as signed/unsigned)
-            {1, 0, graphics::TextureFormat::RGBA8Sint, 16},
+            // location 1: normal + ao (vec4, normalized from signed bytes to [-1,1] floats)
+            // Note: RGBA8Snorm normalizes int8 values to float: [-128,127] -> [-1.0, 1.0]
+            {1, 0, graphics::TextureFormat::RGBA8Snorm, 16},
             // location 2: uv (vec2)
             {2, 0, graphics::TextureFormat::RG32Float, 20},
             // location 3: texture_index + lights (packed as uint)

@@ -62,6 +62,7 @@ bool Engine::initialize(const EngineConfig& config) {
     if (log_config.log_directory.empty()) {
         log_config.log_directory = platform::FileSystem::get_user_data_directory() / "logs";
     }
+
     Logger::initialize(log_config);
 
     REALCRAFT_LOG_INFO(log_category::ENGINE, "{} v{}", config.app_name, config.version);

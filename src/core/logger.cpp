@@ -53,61 +53,69 @@ spdlog::level::level_enum to_spdlog_level(LogLevel level) {
 
 void Logger::initialize(const LoggerConfig& config) {
     auto& state = get_state();
-    std::lock_guard lock(state.mutex);
+    std::filesystem::path log_path;  // Store for logging after lock release
 
-    if (state.initialized) {
-        return;
-    }
+    {
+        std::lock_guard lock(state.mutex);
 
-    try {
-        // Create console sink with colors
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        console_sink->set_level(to_spdlog_level(config.console_level));
-
-        if (config.include_timestamps) {
-            console_sink->set_pattern("[%H:%M:%S] [%^%l%$] [%n] %v");
-        } else {
-            console_sink->set_pattern("[%^%l%$] [%n] %v");
+        if (state.initialized) {
+            return;
         }
 
-        state.console_logger = std::make_shared<spdlog::logger>("console", console_sink);
-        state.console_logger->set_level(spdlog::level::trace);  // Let sink filter
+        try {
+            // Create console sink with colors
+            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            console_sink->set_level(to_spdlog_level(config.console_level));
 
-        // Create file sink if log directory is specified or use default
-        std::filesystem::path log_dir = config.log_directory;
-        if (log_dir.empty()) {
-            log_dir = platform::FileSystem::get_user_data_directory() / "logs";
+            if (config.include_timestamps) {
+                console_sink->set_pattern("[%H:%M:%S] [%^%l%$] [%n] %v");
+            } else {
+                console_sink->set_pattern("[%^%l%$] [%n] %v");
+            }
+
+            state.console_logger = std::make_shared<spdlog::logger>("console", console_sink);
+            state.console_logger->set_level(spdlog::level::trace);  // Let sink filter
+            state.console_logger->flush_on(spdlog::level::info);    // Flush on every info message
+
+            // Create file sink if log directory is specified or use default
+            std::filesystem::path log_dir = config.log_directory;
+            if (log_dir.empty()) {
+                log_dir = platform::FileSystem::get_user_data_directory() / "logs";
+            }
+
+            // Ensure log directory exists
+            if (!platform::FileSystem::exists(log_dir)) {
+                platform::FileSystem::create_directories(log_dir);
+            }
+
+            log_path = log_dir / config.log_filename;
+            auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+                log_path.string(), config.max_file_size, config.max_files);
+            file_sink->set_level(to_spdlog_level(config.file_level));
+            file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%n] %v");
+
+            state.file_logger = std::make_shared<spdlog::logger>("file", file_sink);
+            state.file_logger->set_level(spdlog::level::trace);  // Let sink filter
+            state.file_logger->flush_on(spdlog::level::info);    // Flush on every info message
+
+            state.global_level = config.console_level;
+            state.initialized = true;
+
+        } catch (const spdlog::spdlog_ex& ex) {
+            // Fallback to basic console logging if file creation fails
+            spdlog::error("Logger initialization failed: {}", ex.what());
+
+            auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+            state.console_logger = std::make_shared<spdlog::logger>("console", console_sink);
+            state.global_level = config.console_level;
+            state.initialized = true;
         }
+    }  // Lock released here
 
-        // Ensure log directory exists
-        if (!platform::FileSystem::exists(log_dir)) {
-            platform::FileSystem::create_directories(log_dir);
-        }
-
-        auto log_path = log_dir / config.log_filename;
-        auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(log_path.string(), config.max_file_size,
-                                                                                config.max_files);
-        file_sink->set_level(to_spdlog_level(config.file_level));
-        file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%n] %v");
-
-        state.file_logger = std::make_shared<spdlog::logger>("file", file_sink);
-        state.file_logger->set_level(spdlog::level::trace);  // Let sink filter
-
-        state.global_level = config.console_level;
-        state.initialized = true;
-
-        // Log initialization success
-        info(log_category::ENGINE, "Logger initialized");
+    // Log initialization success AFTER releasing the lock to avoid deadlock
+    info(log_category::ENGINE, "Logger initialized");
+    if (!log_path.empty()) {
         info(log_category::ENGINE, "Log file: {}", log_path.string());
-
-    } catch (const spdlog::spdlog_ex& ex) {
-        // Fallback to basic console logging if file creation fails
-        spdlog::error("Logger initialization failed: {}", ex.what());
-
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        state.console_logger = std::make_shared<spdlog::logger>("console", console_sink);
-        state.global_level = config.console_level;
-        state.initialized = true;
     }
 }
 

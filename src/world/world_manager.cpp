@@ -61,6 +61,7 @@ struct WorldManager::Impl {
 
     std::priority_queue<LoadRequest, std::vector<LoadRequest>, LoadRequestCompare> load_queue;
     std::unordered_set<ChunkPos> queued_chunks;
+    std::unordered_set<ChunkPos> processing_chunks;  // Chunks currently being generated
     std::mutex load_queue_mutex;
     std::condition_variable load_cv;
 
@@ -93,9 +94,16 @@ struct WorldManager::Impl {
                 request = load_queue.top();
                 load_queue.pop();
                 queued_chunks.erase(request.pos);
+                processing_chunks.insert(request.pos);  // Mark as processing
             }
 
             process_load_request(request);
+
+            // Remove from processing set
+            {
+                std::lock_guard<std::mutex> lock(load_queue_mutex);
+                processing_chunks.erase(request.pos);
+            }
         }
     }
 
@@ -348,6 +356,9 @@ void WorldManager::update(double delta_time) {
         impl_->origin_shifter.update(impl_->player_position);
     }
 
+    // Load/unload chunks based on player position
+    update_loaded_chunks();
+
     // Auto-save
     if (impl_->config.auto_save_interval > 0) {
         impl_->auto_save_timer += delta_time;
@@ -388,7 +399,8 @@ void WorldManager::request_chunk(const ChunkPos& pos, ChunkLoadPriority priority
 
     {
         std::lock_guard<std::mutex> lock(impl_->load_queue_mutex);
-        if (impl_->queued_chunks.count(pos) > 0) {
+        // Skip if already queued or being processed
+        if (impl_->queued_chunks.count(pos) > 0 || impl_->processing_chunks.count(pos) > 0) {
             return;
         }
         impl_->queued_chunks.insert(pos);

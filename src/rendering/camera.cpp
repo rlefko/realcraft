@@ -83,11 +83,15 @@ glm::mat4 Camera::get_view_matrix(double interpolation) const {
     }
 
     glm::vec3 pos = get_render_position(interpolation);
+    // Use right-handed lookAt (standard GLM convention)
     return glm::lookAt(pos, pos + forward_, up_);
 }
 
 glm::mat4 Camera::get_projection_matrix(float aspect_ratio) const {
-    return glm::perspective(glm::radians(config_.fov_degrees), aspect_ratio, config_.near_plane, config_.far_plane);
+    // Use RH_ZO (Right-Handed, Zero-to-One depth) for Metal's coordinate system
+    // Metal uses [0,1] depth range; RH matches our view matrix and frustum conventions
+    return glm::perspectiveRH_ZO(glm::radians(config_.fov_degrees), aspect_ratio, config_.near_plane,
+                                 config_.far_plane);
 }
 
 glm::mat4 Camera::get_view_projection_matrix(float aspect_ratio, double interpolation) const {

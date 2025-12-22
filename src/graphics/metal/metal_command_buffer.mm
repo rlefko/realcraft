@@ -171,14 +171,19 @@ void MetalCommandBuffer::bind_uniform_buffer(uint32_t binding, const Buffer* buf
                                               size_t offset, size_t /*size*/) {
     if (!buffer) return;
 
+    // Uniform buffers are remapped to indices 10+ to avoid collision with vertex buffers
+    // This must match the SPIRV-Cross MSL resource binding remapping in shader_compiler.cpp
+    constexpr uint32_t UNIFORM_BUFFER_BASE_INDEX = 10;
+    uint32_t metal_index = UNIFORM_BUFFER_BASE_INDEX + binding;
+
     @autoreleasepool {
         id<MTLBuffer> mtl_buffer = get_mtl_buffer(buffer);
         if (render_encoder_) {
-            [render_encoder_ setVertexBuffer:mtl_buffer offset:offset atIndex:binding];
-            [render_encoder_ setFragmentBuffer:mtl_buffer offset:offset atIndex:binding];
+            [render_encoder_ setVertexBuffer:mtl_buffer offset:offset atIndex:metal_index];
+            [render_encoder_ setFragmentBuffer:mtl_buffer offset:offset atIndex:metal_index];
         }
         if (compute_encoder_) {
-            [compute_encoder_ setBuffer:mtl_buffer offset:offset atIndex:binding];
+            [compute_encoder_ setBuffer:mtl_buffer offset:offset atIndex:metal_index];
         }
     }
 }
