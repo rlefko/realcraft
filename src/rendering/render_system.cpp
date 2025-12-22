@@ -127,9 +127,9 @@ void RenderSystem::render(double interpolation) {
         return;
     }
 
-    // Check if window was resized
+    // Check if window was resized (use framebuffer size for Retina displays)
     auto* window = engine_->get_window();
-    auto window_size = window->get_size();
+    auto window_size = window->get_framebuffer_size();
     uint32_t width = window_size.x;
     uint32_t height = window_size.y;
 
