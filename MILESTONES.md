@@ -490,7 +490,7 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 6: Core Gameplay Systems `[~]`
+## Phase 6: Core Gameplay Systems `[x]`
 
 **Goal:** Implement player interaction, inventory, and basic gameplay loop
 
@@ -548,24 +548,24 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Pickup radius
   - [x] Auto-stack on pickup
 
-### Milestone 6.4: Basic UI `[Low]`
+### Milestone 6.4: Basic UI `[Low]` ✅
 
-- [ ] Implement crosshair
-  - [ ] Center screen crosshair
-  - [ ] Style options
-- [ ] Implement hotbar display
-  - [ ] Item icons
-  - [ ] Stack counts
-  - [ ] Selection highlight
-- [ ] Implement health/hunger bars
-  - [ ] Health bar (survival)
-  - [ ] Hunger bar (survival)
-  - [ ] Status effects display
-- [ ] Implement debug overlay
-  - [ ] FPS counter
-  - [ ] Position/chunk info
-  - [ ] Performance stats
-  - [ ] Toggle with F3
+- [x] Implement crosshair
+  - [x] Center screen crosshair
+  - [x] Style options
+- [x] Implement hotbar display
+  - [x] Item icons
+  - [x] Stack counts
+  - [x] Selection highlight
+- [x] Implement health/hunger bars
+  - [x] Health bar (survival)
+  - [x] Hunger bar (survival)
+  - [x] Status effects display
+- [x] Implement debug overlay
+  - [x] FPS counter
+  - [x] Position/chunk info
+  - [x] Performance stats
+  - [x] Toggle with F3
 
 ---
 
@@ -962,7 +962,7 @@ This document outlines the complete development roadmap for RealCraft, organized
 - [ ] Implement region storage
   - [ ] Region file format
   - [ ] Chunk serialization
-  - [ ] Block data compression (zlib)
+  - [ ] Block data compression (zstd)
 - [ ] Implement chunk persistence
   - [ ] Save on unload
   - [ ] Load on demand

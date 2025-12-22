@@ -6,6 +6,7 @@
 #include "camera.hpp"
 #include "chunk_mesh.hpp"
 #include "frustum.hpp"
+#include "hud_renderer.hpp"
 #include "lighting.hpp"
 #include "mesh_manager.hpp"
 #include "texture_manager.hpp"
@@ -110,6 +111,13 @@ public:
     [[nodiscard]] const MeshManager& get_mesh_manager() const { return *mesh_manager_; }
 
     // ========================================================================
+    // HUD Access
+    // ========================================================================
+
+    [[nodiscard]] HUDRenderer& get_hud_renderer() { return *hud_renderer_; }
+    [[nodiscard]] const HUDRenderer& get_hud_renderer() const { return *hud_renderer_; }
+
+    // ========================================================================
     // IWorldObserver Implementation
     // ========================================================================
 
@@ -132,6 +140,7 @@ private:
     DayNightCycle day_night_cycle_;
     std::unique_ptr<MeshManager> mesh_manager_;
     std::unique_ptr<TextureManager> texture_manager_;
+    std::unique_ptr<HUDRenderer> hud_renderer_;
 
     // GPU Resources
     std::unique_ptr<graphics::Shader> voxel_vertex_shader_;

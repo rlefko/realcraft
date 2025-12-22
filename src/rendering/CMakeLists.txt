@@ -5,6 +5,7 @@ set(RENDERING_SOURCES
     camera.cpp
     chunk_mesh.cpp
     frustum.cpp
+    hud_renderer.cpp
     lighting.cpp
     mesh_generator.cpp
     mesh_manager.cpp

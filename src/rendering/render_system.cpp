@@ -80,6 +80,14 @@ bool RenderSystem::initialize(core::Engine* engine, world::WorldManager* world, 
         return false;
     }
 
+    // Initialize HUD renderer
+    hud_renderer_ = std::make_unique<HUDRenderer>();
+    if (!hud_renderer_->initialize(device_, texture_manager_->get_block_atlas())) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to initialize HUDRenderer");
+        shutdown();
+        return false;
+    }
+
     REALCRAFT_LOG_INFO(core::log_category::GRAPHICS, "RenderSystem initialized");
     return true;
 }
@@ -92,6 +100,9 @@ void RenderSystem::shutdown() {
     if (world_) {
         world_->remove_observer(this);
     }
+
+    // HUD renderer
+    hud_renderer_.reset();
 
     depth_texture_.reset();
     camera_uniform_buffer_.reset();
@@ -204,6 +215,11 @@ void RenderSystem::render(double interpolation) {
 
     // Render block selection highlight (if any)
     render_selection_highlight(cmd.get());
+
+    // Render HUD (crosshair, hotbar, health/hunger, debug overlay)
+    if (hud_renderer_) {
+        hud_renderer_->render(cmd.get(), width, height);
+    }
 
     cmd->end_render_pass();
 
