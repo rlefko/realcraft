@@ -73,6 +73,13 @@ bool RenderSystem::initialize(core::Engine* engine, world::WorldManager* world, 
         return false;
     }
 
+    // Create selection highlight resources
+    if (!create_selection_resources()) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to create selection resources");
+        shutdown();
+        return false;
+    }
+
     REALCRAFT_LOG_INFO(core::log_category::GRAPHICS, "RenderSystem initialized");
     return true;
 }
@@ -89,6 +96,14 @@ void RenderSystem::shutdown() {
     depth_texture_.reset();
     camera_uniform_buffer_.reset();
     lighting_uniform_buffer_.reset();
+
+    // Selection resources
+    selection_vertex_buffer_.reset();
+    selection_index_buffer_.reset();
+    selection_uniform_buffer_.reset();
+    selection_pipeline_.reset();
+    selection_vertex_shader_.reset();
+    selection_fragment_shader_.reset();
 
     voxel_pipeline_.reset();
     voxel_wireframe_pipeline_.reset();
@@ -186,6 +201,9 @@ void RenderSystem::render(double interpolation) {
 
     // Render chunks
     render_chunks(cmd.get());
+
+    // Render block selection highlight (if any)
+    render_selection_highlight(cmd.get());
 
     cmd->end_render_pass();
 
@@ -547,6 +565,264 @@ void RenderSystem::render_chunks(graphics::CommandBuffer* cmd) {
 
 void RenderSystem::render_sky(graphics::CommandBuffer* /*cmd*/) {
     // Sky rendering would go here - for now, we just clear to sky color
+}
+
+void RenderSystem::set_block_selection(const world::WorldBlockPos* block_pos, float break_progress) {
+    if (block_pos) {
+        has_selection_ = true;
+        selection_block_pos_ = *block_pos;
+        selection_break_progress_ = break_progress;
+    } else {
+        has_selection_ = false;
+    }
+}
+
+void RenderSystem::clear_block_selection() {
+    has_selection_ = false;
+}
+
+bool RenderSystem::create_selection_resources() {
+    graphics::ShaderCompiler compiler;
+
+    // Selection highlight vertex shader
+    const char* selection_vert_source = R"(
+#version 450
+
+layout(location = 0) in vec4 in_position;
+
+layout(location = 0) out vec3 frag_local_pos;
+
+layout(set = 0, binding = 0) uniform CameraUniforms {
+    mat4 view;
+    mat4 projection;
+    mat4 view_projection;
+    vec3 camera_position;
+    float time;
+} camera;
+
+layout(push_constant) uniform SelectionPushConstants {
+    vec3 block_position;
+    float break_progress;
+} selection;
+
+void main() {
+    // Scale slightly to avoid z-fighting (1.004x)
+    vec3 pos = in_position.xyz;
+    vec3 scaled_pos = (pos - 0.5) * 1.004 + 0.5;
+    vec3 world_pos = scaled_pos + selection.block_position;
+
+    gl_Position = camera.view_projection * vec4(world_pos, 1.0);
+    frag_local_pos = pos;
+}
+)";
+
+    // Selection highlight fragment shader
+    const char* selection_frag_source = R"(
+#version 450
+
+layout(location = 0) in vec3 frag_local_pos;
+
+layout(location = 0) out vec4 out_color;
+
+layout(push_constant) uniform SelectionPushConstants {
+    vec3 block_position;
+    float break_progress;
+} selection;
+
+void main() {
+    // Calculate edge factor for wireframe effect
+    vec3 edge_dist = min(frag_local_pos, 1.0 - frag_local_pos);
+    float min_edge = min(min(edge_dist.x, edge_dist.y), edge_dist.z);
+
+    // Line width (thicker when breaking)
+    float line_width = mix(0.02, 0.04, selection.break_progress);
+    float edge_factor = smoothstep(0.0, line_width, min_edge);
+
+    // Black outline
+    vec3 line_color = vec3(0.0, 0.0, 0.0);
+
+    // Interior shows break progress as darkening
+    vec3 fill_color = vec3(0.0, 0.0, 0.0);
+    float fill_alpha = selection.break_progress * 0.4;
+
+    // Combine: edges are black lines, interior shows cracks
+    if (edge_factor < 0.5) {
+        // On edge - draw black line
+        out_color = vec4(line_color, 0.8);
+    } else {
+        // Interior - show break progress
+        out_color = vec4(fill_color, fill_alpha);
+    }
+}
+)";
+
+    // Compile selection vertex shader
+    graphics::ShaderCompileOptions vert_options;
+    vert_options.stage = graphics::ShaderStage::Vertex;
+    vert_options.entry_point = "main";
+
+    auto sel_vert_result = compiler.compile_glsl(selection_vert_source, vert_options);
+    if (!sel_vert_result.success) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to compile selection vertex shader: {}",
+                            sel_vert_result.error_message);
+        return false;
+    }
+
+    graphics::ShaderCompileOptions frag_options;
+    frag_options.stage = graphics::ShaderStage::Fragment;
+    frag_options.entry_point = "main";
+
+    auto sel_frag_result = compiler.compile_glsl(selection_frag_source, frag_options);
+    if (!sel_frag_result.success) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to compile selection fragment shader: {}",
+                            sel_frag_result.error_message);
+        return false;
+    }
+
+    // Create shader objects
+    graphics::ShaderDesc vert_desc;
+    vert_desc.stage = graphics::ShaderStage::Vertex;
+    vert_desc.bytecode =
+        sel_vert_result.msl_bytecode.empty()
+            ? std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(sel_vert_result.msl_source.data()),
+                                       sel_vert_result.msl_source.size())
+            : std::span<const uint8_t>(sel_vert_result.msl_bytecode);
+    vert_desc.entry_point = "main0";
+    vert_desc.debug_name = "selection_vertex";
+
+    selection_vertex_shader_ = device_->create_shader(vert_desc);
+    if (!selection_vertex_shader_) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to create selection vertex shader");
+        return false;
+    }
+
+    graphics::ShaderDesc frag_desc;
+    frag_desc.stage = graphics::ShaderStage::Fragment;
+    frag_desc.bytecode =
+        sel_frag_result.msl_bytecode.empty()
+            ? std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(sel_frag_result.msl_source.data()),
+                                       sel_frag_result.msl_source.size())
+            : std::span<const uint8_t>(sel_frag_result.msl_bytecode);
+    frag_desc.entry_point = "main0";
+    frag_desc.debug_name = "selection_fragment";
+
+    selection_fragment_shader_ = device_->create_shader(frag_desc);
+    if (!selection_fragment_shader_) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to create selection fragment shader");
+        return false;
+    }
+
+    // Create selection pipeline
+    graphics::PipelineDesc pipeline_desc;
+    pipeline_desc.vertex_shader = selection_vertex_shader_.get();
+    pipeline_desc.fragment_shader = selection_fragment_shader_.get();
+
+    // vec4 vertex attribute (xyz position, w unused)
+    pipeline_desc.vertex_attributes = {{0, 0, graphics::TextureFormat::RGBA32Float, 0}};
+    pipeline_desc.vertex_bindings = {{0, sizeof(float) * 4, false}};
+
+    pipeline_desc.topology = graphics::PrimitiveTopology::TriangleList;
+
+    // Rasterizer - no culling to see all faces of selection
+    pipeline_desc.rasterizer.cull_mode = graphics::CullMode::None;
+    pipeline_desc.rasterizer.front_face = graphics::FrontFace::CounterClockwise;
+
+    // Depth - test but don't write (render on top of world)
+    pipeline_desc.depth_stencil.depth_test_enable = true;
+    pipeline_desc.depth_stencil.depth_write_enable = false;
+    pipeline_desc.depth_stencil.depth_compare = graphics::CompareOp::LessOrEqual;
+
+    // Alpha blending
+    graphics::BlendState blend;
+    blend.enable = true;
+    blend.src_color = graphics::BlendFactor::SrcAlpha;
+    blend.dst_color = graphics::BlendFactor::OneMinusSrcAlpha;
+    blend.color_op = graphics::BlendOp::Add;
+    blend.src_alpha = graphics::BlendFactor::One;
+    blend.dst_alpha = graphics::BlendFactor::Zero;
+    blend.alpha_op = graphics::BlendOp::Add;
+    pipeline_desc.color_blend.push_back(blend);
+
+    pipeline_desc.color_formats = {graphics::TextureFormat::BGRA8Unorm};
+    pipeline_desc.depth_format = graphics::TextureFormat::Depth32Float;
+    pipeline_desc.debug_name = "selection_pipeline";
+
+    selection_pipeline_ = device_->create_pipeline(pipeline_desc);
+    if (!selection_pipeline_) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to create selection pipeline");
+        return false;
+    }
+
+    // Create cube vertex buffer (unit cube from 0 to 1, vec4 with w=0)
+    // clang-format off
+    float cube_vertices[] = {
+        // Front face (z = 1)
+        0.0f, 0.0f, 1.0f, 0.0f,  1.0f, 0.0f, 1.0f, 0.0f,  1.0f, 1.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,  1.0f, 1.0f, 1.0f, 0.0f,  0.0f, 1.0f, 1.0f, 0.0f,
+        // Back face (z = 0)
+        1.0f, 0.0f, 0.0f, 0.0f,  0.0f, 0.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f,  1.0f, 1.0f, 0.0f, 0.0f,
+        // Top face (y = 1)
+        0.0f, 1.0f, 1.0f, 0.0f,  1.0f, 1.0f, 1.0f, 0.0f,  1.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 1.0f, 0.0f,  1.0f, 1.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f,
+        // Bottom face (y = 0)
+        0.0f, 0.0f, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f, 0.0f,  1.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f,  1.0f, 0.0f, 1.0f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f,
+        // Right face (x = 1)
+        1.0f, 0.0f, 1.0f, 0.0f,  1.0f, 0.0f, 0.0f, 0.0f,  1.0f, 1.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 1.0f, 0.0f,  1.0f, 1.0f, 0.0f, 0.0f,  1.0f, 1.0f, 1.0f, 0.0f,
+        // Left face (x = 0)
+        0.0f, 0.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f,  0.0f, 1.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f,  0.0f, 1.0f, 1.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f,
+    };
+    // clang-format on
+
+    graphics::BufferDesc vb_desc;
+    vb_desc.size = sizeof(cube_vertices);
+    vb_desc.usage = graphics::BufferUsage::Vertex;
+    vb_desc.host_visible = true;
+    vb_desc.initial_data = cube_vertices;
+    vb_desc.debug_name = "SelectionCubeVB";
+
+    selection_vertex_buffer_ = device_->create_buffer(vb_desc);
+    if (!selection_vertex_buffer_) {
+        REALCRAFT_LOG_ERROR(core::log_category::GRAPHICS, "Failed to create selection vertex buffer");
+        return false;
+    }
+
+    REALCRAFT_LOG_INFO(core::log_category::GRAPHICS, "Selection resources created successfully");
+    return true;
+}
+
+void RenderSystem::render_selection_highlight(graphics::CommandBuffer* cmd) {
+    if (!has_selection_ || !selection_pipeline_) {
+        return;
+    }
+
+    cmd->bind_pipeline(selection_pipeline_.get());
+
+    // Bind camera uniform buffer (same as chunks)
+    cmd->bind_uniform_buffer(0, camera_uniform_buffer_.get());
+
+    // Calculate block position relative to render origin
+    glm::vec3 block_pos(static_cast<float>(selection_block_pos_.x - origin_offset_.x),
+                        static_cast<float>(selection_block_pos_.y - origin_offset_.y),
+                        static_cast<float>(selection_block_pos_.z - origin_offset_.z));
+
+    // Push constants: block position and break progress
+    struct SelectionPushConstants {
+        glm::vec3 block_position;
+        float break_progress;
+    } push;
+    push.block_position = block_pos;
+    push.break_progress = selection_break_progress_;
+
+    cmd->push_constants(graphics::ShaderStage::Vertex, 0, sizeof(push), &push);
+    cmd->push_constants(graphics::ShaderStage::Fragment, 0, sizeof(push), &push);
+
+    // Draw the selection cube
+    cmd->bind_vertex_buffer(0, selection_vertex_buffer_.get());
+    cmd->draw(36, 1, 0, 0);  // 36 vertices (6 faces * 2 triangles * 3 vertices)
 }
 
 }  // namespace realcraft::rendering

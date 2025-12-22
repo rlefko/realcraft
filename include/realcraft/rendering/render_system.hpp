@@ -148,6 +148,14 @@ private:
 
     std::unique_ptr<graphics::Texture> depth_texture_;
 
+    // Selection highlight resources
+    std::unique_ptr<graphics::Shader> selection_vertex_shader_;
+    std::unique_ptr<graphics::Shader> selection_fragment_shader_;
+    std::unique_ptr<graphics::Pipeline> selection_pipeline_;
+    std::unique_ptr<graphics::Buffer> selection_vertex_buffer_;
+    std::unique_ptr<graphics::Buffer> selection_index_buffer_;
+    std::unique_ptr<graphics::Buffer> selection_uniform_buffer_;
+
     // Render state
     world::WorldBlockPos origin_offset_{0, 0, 0};
     float total_time_ = 0.0f;
@@ -162,6 +170,28 @@ private:
     void update_uniform_buffers(double interpolation);
     void render_chunks(graphics::CommandBuffer* cmd);
     void render_sky(graphics::CommandBuffer* cmd);
+
+public:
+    // ========================================================================
+    // Block Selection Rendering
+    // ========================================================================
+
+    // Set block selection to render (call before render())
+    // Pass nullptr to clear selection
+    void set_block_selection(const world::WorldBlockPos* block_pos, float break_progress = 0.0f);
+
+    // Clear block selection
+    void clear_block_selection();
+
+private:
+    // Selection state
+    bool has_selection_ = false;
+    world::WorldBlockPos selection_block_pos_{0, 0, 0};
+    float selection_break_progress_ = 0.0f;
+
+    // Selection highlight initialization
+    bool create_selection_resources();
+    void render_selection_highlight(graphics::CommandBuffer* cmd);
 };
 
 }  // namespace realcraft::rendering
