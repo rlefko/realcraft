@@ -134,3 +134,27 @@ target_include_directories(realcraft_physics_tests
 
 realcraft_configure_target(realcraft_physics_tests)
 gtest_discover_tests(realcraft_physics_tests)
+
+# Gameplay unit tests
+add_executable(realcraft_gameplay_tests
+    unit/gameplay/item_test.cpp
+    unit/gameplay/inventory_test.cpp
+)
+
+target_link_libraries(realcraft_gameplay_tests
+    PRIVATE
+        realcraft::gameplay
+        realcraft::world
+        realcraft::core
+        GTest::gtest
+        GTest::gtest_main
+        glm::glm
+)
+
+target_include_directories(realcraft_gameplay_tests
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+)
+
+realcraft_configure_target(realcraft_gameplay_tests)
+gtest_discover_tests(realcraft_gameplay_tests)

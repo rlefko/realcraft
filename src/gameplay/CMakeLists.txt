@@ -3,6 +3,9 @@
 
 set(GAMEPLAY_SOURCES
     block_interaction.cpp
+    inventory.cpp
+    item.cpp
+    item_entity.cpp
 )
 
 # Create static library

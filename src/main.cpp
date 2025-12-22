@@ -5,6 +5,9 @@
 #include <realcraft/core/engine.hpp>
 #include <realcraft/core/logger.hpp>
 #include <realcraft/gameplay/block_interaction.hpp>
+#include <realcraft/gameplay/inventory.hpp>
+#include <realcraft/gameplay/item.hpp>
+#include <realcraft/gameplay/item_entity.hpp>
 #include <realcraft/graphics/command_buffer.hpp>
 #include <realcraft/graphics/swap_chain.hpp>
 #include <realcraft/graphics/types.hpp>
@@ -182,6 +185,53 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     }
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Block Interaction System: OK");
 
+    // Register default items from blocks
+    gameplay::ItemRegistry::instance().register_defaults();
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Item Registry: {} items",
+                       gameplay::ItemRegistry::instance().count());
+
+    // Initialize Inventory
+    gameplay::InventoryConfig inventory_config;
+    inventory_config.creative_mode = false;  // Survival mode - consume items when placing
+    inventory_config.pickup_radius = 2.0;
+
+    gameplay::Inventory inventory;
+    if (!inventory.initialize(inventory_config)) {
+        REALCRAFT_LOG_ERROR(core::log_category::ENGINE, "Failed to initialize Inventory");
+        block_interaction.shutdown();
+        player_controller.shutdown();
+        physics_world.shutdown();
+        render_system.shutdown();
+        world_manager.shutdown();
+        return 1;
+    }
+
+    // Fill hotbar with default blocks for testing
+    inventory.fill_hotbar_defaults();
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Inventory: OK");
+
+    // Initialize Item Entity Manager
+    gameplay::ItemEntityConfig item_entity_config;
+    item_entity_config.max_entities = 500;
+    item_entity_config.pickup_radius = 2.0;
+
+    gameplay::ItemEntityManager item_entity_manager;
+    if (!item_entity_manager.initialize(&physics_world, &world_manager, &inventory, item_entity_config)) {
+        REALCRAFT_LOG_ERROR(core::log_category::ENGINE, "Failed to initialize Item Entity Manager");
+        inventory.shutdown();
+        block_interaction.shutdown();
+        player_controller.shutdown();
+        physics_world.shutdown();
+        render_system.shutdown();
+        world_manager.shutdown();
+        return 1;
+    }
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Item Entity Manager: OK");
+
+    // Connect inventory systems to block interaction
+    block_interaction.set_inventory(&inventory);
+    block_interaction.set_item_entity_manager(&item_entity_manager);
+
     // Pre-load central chunk synchronously so there's something to see immediately
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Pre-loading central chunk...");
     (void)world_manager.load_chunk_sync({0, 0});
@@ -203,7 +253,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Mouse - Look around");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Left Click - Break block (hold)");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Right Click - Place block");
-    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Scroll - Cycle held block");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  1-9 - Select hotbar slot");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Scroll - Cycle hotbar slot");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  ESC - Release mouse / Exit");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  F11 - Toggle fullscreen");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  T - Toggle wireframe");
@@ -227,7 +278,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
 
     // Variable update callback (every frame)
     engine.set_update_callback([&engine, &world_manager, &render_system, &player_controller, &player_input,
-                                &input_mapper, &block_interaction](double dt) {
+                                &input_mapper, &block_interaction, &inventory, &item_entity_manager](double dt) {
         auto* input = engine.get_input();
         auto* window = engine.get_window();
 
@@ -313,12 +364,20 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             block_interaction.on_primary_action(input_mapper.is_action_pressed("primary_action"));
             block_interaction.on_secondary_action(input_mapper.is_action_just_pressed("secondary_action"));
 
-            // Scroll wheel to cycle held block
+            // Hotbar selection (1-9 keys)
+            for (int i = 1; i <= 9; ++i) {
+                std::string action = "hotbar_" + std::to_string(i);
+                if (input_mapper.is_action_just_pressed(action)) {
+                    inventory.select_slot(i - 1);  // Convert 1-9 to 0-8
+                }
+            }
+
+            // Scroll wheel to cycle hotbar slot
             auto scroll = input->get_scroll_delta();
             if (scroll.y > 0.1) {
-                block_interaction.cycle_held_block(true);
+                inventory.scroll_slot(-1);  // Scroll up = previous slot
             } else if (scroll.y < -0.1) {
-                block_interaction.cycle_held_block(false);
+                inventory.scroll_slot(1);  // Scroll down = next slot
             }
         } else {
             // Release primary action when mouse not captured
@@ -345,6 +404,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
         // Update player position for chunk loading
         world_manager.set_player_position(player_controller.get_position());
 
+        // Update item entities (physics, pickup, despawn)
+        item_entity_manager.update(dt, player_controller.get_position());
+
         // Update world (chunk loading/unloading)
         world_manager.update(dt);
 
@@ -358,7 +420,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // Run the engine (blocks until exit)
     engine.run();
 
-    // Cleanup
+    // Cleanup (reverse order of initialization)
+    item_entity_manager.shutdown();
+    inventory.shutdown();
     block_interaction.shutdown();
     player_controller.shutdown();
     physics_world.shutdown();

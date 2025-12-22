@@ -5,6 +5,8 @@
 #include <cmath>
 #include <realcraft/core/logger.hpp>
 #include <realcraft/gameplay/block_interaction.hpp>
+#include <realcraft/gameplay/inventory.hpp>
+#include <realcraft/gameplay/item_entity.hpp>
 #include <realcraft/physics/types.hpp>
 
 namespace realcraft::gameplay {
@@ -44,8 +46,10 @@ bool BlockInteractionSystem::initialize(physics::PhysicsWorld* physics_world,
     camera_ = camera;
     config_ = config;
 
-    // Default to stone for testing
-    held_block_ = world::BLOCK_STONE;
+    // Set up override mode until inventory is connected
+    // This allows the system to work without inventory for testing
+    held_block_override_ = world::BLOCK_STONE;
+    use_held_block_override_ = true;
 
     initialized_ = true;
     REALCRAFT_LOG_DEBUG(core::log_category::GAME, "BlockInteractionSystem initialized");
@@ -61,9 +65,12 @@ void BlockInteractionSystem::shutdown() {
     player_controller_ = nullptr;
     world_manager_ = nullptr;
     camera_ = nullptr;
+    inventory_ = nullptr;
+    item_entity_manager_ = nullptr;
 
     target_ = TargetInfo{};
     mining_.reset();
+    use_held_block_override_ = false;
     initialized_ = false;
 
     REALCRAFT_LOG_DEBUG(core::log_category::GAME, "BlockInteractionSystem shutdown");
@@ -206,7 +213,13 @@ void BlockInteractionSystem::break_block(const world::WorldBlockPos& pos) {
     // Trigger block broken callback
     world::BlockRegistry::instance().on_block_broken(pos, old_block);
 
-    // Log the break (for debugging - drops would be handled by inventory system)
+    // Spawn item drop if item entity manager is available
+    if (item_entity_manager_ != nullptr) {
+        glm::dvec3 drop_pos{static_cast<double>(pos.x), static_cast<double>(pos.y), static_cast<double>(pos.z)};
+        item_entity_manager_->spawn_block_drops(drop_pos, old_block);
+    }
+
+    // Log the break
     const auto* block_type = world::BlockRegistry::instance().get(old_block);
     const char* block_name = block_type ? block_type->get_name().c_str() : "unknown";
     REALCRAFT_LOG_DEBUG(core::log_category::GAME, "Block broken at ({}, {}, {}): {}", pos.x, pos.y, pos.z, block_name);
@@ -230,7 +243,8 @@ void BlockInteractionSystem::on_secondary_action(bool just_pressed) {
         return;
     }
 
-    place_block(held_block_);
+    world::BlockId block_to_place = get_held_block();
+    place_block(block_to_place);
 }
 
 void BlockInteractionSystem::place_block(world::BlockId block_id) {
@@ -255,6 +269,11 @@ void BlockInteractionSystem::place_block(world::BlockId block_id) {
 
     // Trigger placed callback
     world::BlockRegistry::instance().on_block_placed(place_pos, block_id, 0);
+
+    // Consume item from inventory (if using inventory, not override)
+    if (inventory_ != nullptr && !use_held_block_override_) {
+        inventory_->consume_held_item(1);
+    }
 
     // Log the placement
     const auto* block_type = world::BlockRegistry::instance().get(block_id);
@@ -294,6 +313,25 @@ bool BlockInteractionSystem::can_place_block(const world::WorldBlockPos& pos, wo
 }
 
 void BlockInteractionSystem::cycle_held_block(bool forward) {
+    // If using inventory, cycle through hotbar instead
+    if (inventory_ != nullptr && !use_held_block_override_) {
+        inventory_->scroll_slot(forward ? 1 : -1);
+
+        // Log the new selection
+        auto held = inventory_->get_held_block();
+        if (held.has_value()) {
+            const auto* block_type = world::BlockRegistry::instance().get(held.value());
+            const char* block_name = block_type ? block_type->get_name().c_str() : "unknown";
+            REALCRAFT_LOG_INFO(core::log_category::GAME, "Selected slot {}: {}", inventory_->get_selected_slot() + 1,
+                               block_name);
+        } else {
+            REALCRAFT_LOG_INFO(core::log_category::GAME, "Selected slot {}: empty",
+                               inventory_->get_selected_slot() + 1);
+        }
+        return;
+    }
+
+    // Legacy override mode: cycle through all placeable blocks
     // Get list of placeable block IDs
     std::vector<world::BlockId> placeable_blocks;
     world::BlockRegistry::instance().for_each([&placeable_blocks](const world::BlockType& type) {
@@ -311,30 +349,77 @@ void BlockInteractionSystem::cycle_held_block(bool forward) {
     std::sort(placeable_blocks.begin(), placeable_blocks.end());
 
     // Find current block in list
-    auto it = std::find(placeable_blocks.begin(), placeable_blocks.end(), held_block_);
+    auto it = std::find(placeable_blocks.begin(), placeable_blocks.end(), held_block_override_);
 
     if (it == placeable_blocks.end()) {
         // Current block not in list, use first
-        held_block_ = placeable_blocks.front();
+        held_block_override_ = placeable_blocks.front();
     } else if (forward) {
         // Next block
         ++it;
         if (it == placeable_blocks.end()) {
             it = placeable_blocks.begin();
         }
-        held_block_ = *it;
+        held_block_override_ = *it;
     } else {
         // Previous block
         if (it == placeable_blocks.begin()) {
             it = placeable_blocks.end();
         }
         --it;
-        held_block_ = *it;
+        held_block_override_ = *it;
     }
 
-    const auto* block_type = world::BlockRegistry::instance().get(held_block_);
+    const auto* block_type = world::BlockRegistry::instance().get(held_block_override_);
     const char* block_name = block_type ? block_type->get_name().c_str() : "unknown";
     REALCRAFT_LOG_INFO(core::log_category::GAME, "Selected block: {}", block_name);
+}
+
+// ============================================================================
+// Inventory Integration
+// ============================================================================
+
+void BlockInteractionSystem::set_inventory(Inventory* inventory) {
+    inventory_ = inventory;
+    if (inventory_ != nullptr) {
+        // Switch to inventory mode when inventory is connected
+        use_held_block_override_ = false;
+        REALCRAFT_LOG_DEBUG(core::log_category::GAME, "BlockInteractionSystem: inventory connected");
+    }
+}
+
+void BlockInteractionSystem::set_item_entity_manager(ItemEntityManager* item_manager) {
+    item_entity_manager_ = item_manager;
+    if (item_entity_manager_ != nullptr) {
+        REALCRAFT_LOG_DEBUG(core::log_category::GAME, "BlockInteractionSystem: item entity manager connected");
+    }
+}
+
+world::BlockId BlockInteractionSystem::get_held_block() const {
+    // Use override if set
+    if (use_held_block_override_) {
+        return held_block_override_;
+    }
+
+    // Use inventory if available
+    if (inventory_ != nullptr) {
+        auto block_id = inventory_->get_held_block();
+        if (block_id.has_value()) {
+            return block_id.value();
+        }
+    }
+
+    // Fallback to air (can't place)
+    return world::BLOCK_AIR;
+}
+
+void BlockInteractionSystem::set_held_block_override(world::BlockId block_id) {
+    held_block_override_ = block_id;
+    use_held_block_override_ = true;
+}
+
+void BlockInteractionSystem::clear_held_block_override() {
+    use_held_block_override_ = false;
 }
 
 }  // namespace realcraft::gameplay

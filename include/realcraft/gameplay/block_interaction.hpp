@@ -11,6 +11,10 @@
 
 namespace realcraft::gameplay {
 
+// Forward declarations
+class Inventory;
+class ItemEntityManager;
+
 // ============================================================================
 // Target Information
 // ============================================================================
@@ -117,13 +121,29 @@ public:
     [[nodiscard]] bool has_target() const { return target_.has_target; }
 
     // ========================================================================
-    // Block Selection (temporary until inventory system exists)
+    // Inventory Integration
     // ========================================================================
 
-    void set_held_block(world::BlockId block_id) { held_block_ = block_id; }
-    [[nodiscard]] world::BlockId get_held_block() const { return held_block_; }
+    // Set the player inventory (required for getting held block)
+    void set_inventory(Inventory* inventory);
 
-    // Cycle to next/previous block type (for testing)
+    // Set the item entity manager (required for spawning drops)
+    void set_item_entity_manager(ItemEntityManager* item_manager);
+
+    // Get the held block from inventory (returns AIR if no block held)
+    [[nodiscard]] world::BlockId get_held_block() const;
+
+    // ========================================================================
+    // Legacy Block Selection (for backward compatibility / testing)
+    // ========================================================================
+
+    // Manually override the held block (bypasses inventory)
+    void set_held_block_override(world::BlockId block_id);
+
+    // Clear the manual override (use inventory again)
+    void clear_held_block_override();
+
+    // Cycle to next/previous block type (for testing without inventory)
     void cycle_held_block(bool forward = true);
 
     // ========================================================================
@@ -139,11 +159,17 @@ private:
     world::WorldManager* world_manager_ = nullptr;
     rendering::Camera* camera_ = nullptr;
 
+    // Inventory integration
+    Inventory* inventory_ = nullptr;
+    ItemEntityManager* item_entity_manager_ = nullptr;
+
     BlockInteractionConfig config_;
     TargetInfo target_;
     MiningProgress mining_;
 
-    world::BlockId held_block_ = world::BLOCK_STONE;  // Default held block
+    // Override held block (for testing without inventory)
+    world::BlockId held_block_override_ = world::BLOCK_AIR;
+    bool use_held_block_override_ = false;
 
     bool primary_pressed_ = false;
     bool initialized_ = false;

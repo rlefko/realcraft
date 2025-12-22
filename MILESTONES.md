@@ -529,24 +529,24 @@ This document outlines the complete development roadmap for RealCraft, organized
   - [x] Orientation handling
   - [ ] Place sound
 
-### Milestone 6.3: Inventory System `[Medium]`
+### Milestone 6.3: Inventory System `[Medium]` ✅
 
-- [ ] Implement inventory data structure
-  - [ ] Slot-based inventory
-  - [ ] Item stacks
-  - [ ] Stack size limits
-- [ ] Implement item types
-  - [ ] Block items
-  - [ ] Tool items
-  - [ ] Consumable items
-- [ ] Implement hotbar
-  - [ ] Quick slot selection (1-9)
-  - [ ] Scroll wheel selection
-  - [ ] Active item tracking
-- [ ] Implement item pickup
-  - [ ] Dropped item entities
-  - [ ] Pickup radius
-  - [ ] Auto-stack on pickup
+- [x] Implement inventory data structure
+  - [x] Slot-based inventory
+  - [x] Item stacks
+  - [x] Stack size limits
+- [x] Implement item types
+  - [x] Block items
+  - [x] Tool items
+  - [x] Consumable items
+- [x] Implement hotbar
+  - [x] Quick slot selection (1-9)
+  - [x] Scroll wheel selection
+  - [x] Active item tracking
+- [x] Implement item pickup
+  - [x] Dropped item entities
+  - [x] Pickup radius
+  - [x] Auto-stack on pickup
 
 ### Milestone 6.4: Basic UI `[Low]`
 
