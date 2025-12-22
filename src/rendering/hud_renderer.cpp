@@ -532,6 +532,15 @@ bool HUDRenderer::create_font_texture() {
         }
     }
 
+    // Add solid white pixel at bottom-right corner for solid quads
+    // This is used by add_quad() to render opaque colored rectangles
+    size_t solid_pixel_idx = (FONT_TEXTURE_SIZE - 1) * FONT_TEXTURE_SIZE + (FONT_TEXTURE_SIZE - 1);
+    solid_pixel_idx *= 4;
+    texture_data[solid_pixel_idx + 0] = 255;  // R
+    texture_data[solid_pixel_idx + 1] = 255;  // G
+    texture_data[solid_pixel_idx + 2] = 255;  // B
+    texture_data[solid_pixel_idx + 3] = 255;  // A (opaque)
+
     // Create texture
     graphics::TextureDesc tex_desc;
     tex_desc.type = graphics::TextureType::Texture2D;
@@ -570,8 +579,8 @@ bool HUDRenderer::create_font_texture() {
 
     graphics::BufferImageCopy region;
     region.buffer_offset = 0;
-    region.buffer_row_length = FONT_TEXTURE_SIZE;
-    region.buffer_image_height = FONT_TEXTURE_SIZE;
+    region.buffer_row_length = 0;    // 0 = tightly packed (Metal calculates bytes correctly)
+    region.buffer_image_height = 0;  // 0 = tightly packed
     region.texture_offset_x = 0;
     region.texture_offset_y = 0;
     region.texture_offset_z = 0;
@@ -811,10 +820,10 @@ void HUDRenderer::render_debug_overlay(uint32_t width, uint32_t height) {
 // ============================================================================
 
 void HUDRenderer::add_quad(float x, float y, float w, float h, const glm::vec4& color) {
-    // Use a solid white pixel from the font texture (top-left corner is likely empty)
-    // We'll use UV (0,0) -> (0,0) which samples a single texel
-    float u = 0.5f / FONT_TEXTURE_SIZE;  // Sample center of first texel
-    float v = 0.5f / FONT_TEXTURE_SIZE;
+    // Sample the solid white pixel at bottom-right corner of font texture
+    // This pixel is set to fully opaque white in create_font_texture()
+    float u = (FONT_TEXTURE_SIZE - 0.5f) / FONT_TEXTURE_SIZE;
+    float v = (FONT_TEXTURE_SIZE - 0.5f) / FONT_TEXTURE_SIZE;
 
     // Two triangles forming a quad
     // Triangle 1: top-left, top-right, bottom-right

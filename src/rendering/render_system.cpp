@@ -217,8 +217,10 @@ void RenderSystem::render(double interpolation) {
     render_selection_highlight(cmd.get());
 
     // Render HUD (crosshair, hotbar, health/hunger, debug overlay)
+    // Use window size (not framebuffer size) for HUD so it scales correctly on Retina displays
     if (hud_renderer_) {
-        hud_renderer_->render(cmd.get(), width, height);
+        auto hud_size = window->get_size();
+        hud_renderer_->render(cmd.get(), hud_size.x, hud_size.y);
     }
 
     cmd->end_render_pass();
