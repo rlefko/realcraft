@@ -128,10 +128,32 @@ inline MTLVertexFormat to_mtl_vertex_format(TextureFormat format) {
             return MTLVertexFormatUChar;
         case TextureFormat::R8Sint:
             return MTLVertexFormatChar;
+        case TextureFormat::R8Snorm:
+            return MTLVertexFormatCharNormalized;
         case TextureFormat::RG8Unorm:
             return MTLVertexFormatUChar2Normalized;
+        case TextureFormat::RG8Snorm:
+            return MTLVertexFormatChar2Normalized;
         case TextureFormat::RGBA8Unorm:
             return MTLVertexFormatUChar4Normalized;
+        case TextureFormat::RGBA8Snorm:
+            return MTLVertexFormatChar4Normalized;
+        case TextureFormat::RGBA8Sint:
+            return MTLVertexFormatChar4;
+        case TextureFormat::RGBA8Uint:
+            return MTLVertexFormatUChar4;
+        case TextureFormat::R16Uint:
+            return MTLVertexFormatUShort;
+        case TextureFormat::R16Sint:
+            return MTLVertexFormatShort;
+        case TextureFormat::RG16Uint:
+            return MTLVertexFormatUShort2;
+        case TextureFormat::RG16Sint:
+            return MTLVertexFormatShort2;
+        case TextureFormat::RGBA16Uint:
+            return MTLVertexFormatUShort4;
+        case TextureFormat::RGBA16Sint:
+            return MTLVertexFormatShort4;
         case TextureFormat::R16Float:
             return MTLVertexFormatHalf;
         case TextureFormat::RG16Float:

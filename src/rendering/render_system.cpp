@@ -260,9 +260,12 @@ void main() {
     gl_Position = camera.view_projection * vec4(world_pos, 1.0);
 
     frag_position = world_pos;
-    frag_normal = vec3(in_normal_ao.xyz) / 127.0;
+    // Normal is already normalized to [-1, 1] by RGBA8Snorm vertex format
+    frag_normal = in_normal_ao.xyz;
     frag_uv = in_uv;
-    frag_ao = float(in_normal_ao.w) / 255.0;
+    // AO: stored as 0-127 int8_t, normalized to [0, 1] by Snorm
+    // Note: AO values > 127 will wrap negative due to signed interpretation
+    frag_ao = max(in_normal_ao.w, 0.0);
     frag_color = in_color;
 }
 )";

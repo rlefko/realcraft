@@ -343,6 +343,20 @@ std::optional<std::string> ShaderCompiler::spirv_to_msl(std::span<const uint8_t>
         msl_options.msl_version = spirv_cross::CompilerMSL::Options::make_msl_version(3, 0);
         msl_options.enable_decoration_binding = true;
         msl_options.argument_buffers = false;  // Use discrete resources for simplicity
+
+        // Remap push constants to buffer index 30 to avoid conflicts with uniform buffers
+        // Uniform buffers use indices 0, 1, 2, etc. based on their binding decorations
+        spirv_cross::MSLResourceBinding push_constant_binding;
+        push_constant_binding.stage = spv::ExecutionModelVertex;  // Applies to vertex stage
+        push_constant_binding.desc_set = spirv_cross::kPushConstDescSet;
+        push_constant_binding.binding = spirv_cross::kPushConstBinding;
+        push_constant_binding.msl_buffer = 30;
+        msl.add_msl_resource_binding(push_constant_binding);
+
+        // Also for fragment stage in case push constants are used there
+        push_constant_binding.stage = spv::ExecutionModelFragment;
+        msl.add_msl_resource_binding(push_constant_binding);
+
         msl.set_msl_options(msl_options);
 
         std::string msl_source = msl.compile();

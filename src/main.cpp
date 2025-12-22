@@ -163,6 +163,11 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // Set initial player position for chunk loading
     world_manager.set_player_position({0.0, 80.0, 0.0});
 
+    // Pre-load central chunk synchronously so there's something to see immediately
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Pre-loading central chunk...");
+    (void)world_manager.load_chunk_sync({0, 0});
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Central chunk loaded");
+
     // Shared player input state (updated in update callback, used in fixed_update)
     physics::PlayerInput player_input;
 

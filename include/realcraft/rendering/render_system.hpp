@@ -107,6 +107,7 @@ public:
     // ========================================================================
 
     [[nodiscard]] const RenderStats& get_stats() const { return stats_; }
+    [[nodiscard]] const MeshManager& get_mesh_manager() const { return *mesh_manager_; }
 
     // ========================================================================
     // IWorldObserver Implementation
