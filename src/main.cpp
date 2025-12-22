@@ -8,6 +8,7 @@
 #include <realcraft/gameplay/inventory.hpp>
 #include <realcraft/gameplay/item.hpp>
 #include <realcraft/gameplay/item_entity.hpp>
+#include <realcraft/gameplay/player_stats.hpp>
 #include <realcraft/graphics/command_buffer.hpp>
 #include <realcraft/graphics/swap_chain.hpp>
 #include <realcraft/graphics/types.hpp>
@@ -15,6 +16,7 @@
 #include <realcraft/physics/player_controller.hpp>
 #include <realcraft/platform/input.hpp>
 #include <realcraft/platform/input_action.hpp>
+#include <realcraft/rendering/hud_renderer.hpp>
 #include <realcraft/rendering/render_system.hpp>
 #include <realcraft/world/world_manager.hpp>
 
@@ -210,6 +212,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     inventory.fill_hotbar_defaults();
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Inventory: OK");
 
+    // Initialize Player Stats (stub for UI display - full implementation in Phase 8)
+    gameplay::PlayerStats player_stats;
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Player Stats: OK (stub)");
+
     // Initialize Item Entity Manager
     gameplay::ItemEntityConfig item_entity_config;
     item_entity_config.max_entities = 500;
@@ -278,7 +284,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
 
     // Variable update callback (every frame)
     engine.set_update_callback([&engine, &world_manager, &render_system, &player_controller, &player_input,
-                                &input_mapper, &block_interaction, &inventory, &item_entity_manager](double dt) {
+                                &input_mapper, &block_interaction, &inventory, &item_entity_manager,
+                                &player_stats](double dt) {
         auto* input = engine.get_input();
         auto* window = engine.get_window();
 
@@ -308,6 +315,14 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             cycle.set_paused(!cycle.is_paused());
             REALCRAFT_LOG_INFO(core::log_category::GRAPHICS, "Day-night cycle: {}",
                                cycle.is_paused() ? "PAUSED" : "RUNNING");
+        }
+
+        // F3 - Toggle debug overlay
+        if (input->is_key_just_pressed(platform::KeyCode::F3)) {
+            auto& hud = render_system.get_hud_renderer();
+            hud.set_debug_visible(!hud.is_debug_visible());
+            REALCRAFT_LOG_INFO(core::log_category::GRAPHICS, "Debug overlay: {}",
+                               hud.is_debug_visible() ? "ON" : "OFF");
         }
 
         // Capture mouse on left click
@@ -409,6 +424,51 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
 
         // Update world (chunk loading/unloading)
         world_manager.update(dt);
+
+        // Update HUD data
+        rendering::HUDData hud_data;
+
+        // Hotbar slots
+        for (int i = 0; i < 9; ++i) {
+            const auto& slot = inventory.get_hotbar_slot(static_cast<size_t>(i));
+            hud_data.hotbar_slots[i].empty = slot.is_empty();
+            if (!slot.is_empty()) {
+                const auto* item = gameplay::ItemRegistry::instance().get(slot.item_id);
+                if (item) {
+                    hud_data.hotbar_slots[i].texture_index = item->get_texture_index();
+                    hud_data.hotbar_slots[i].count = slot.count;
+                    hud_data.hotbar_slots[i].durability = slot.durability;
+                    hud_data.hotbar_slots[i].max_durability = item->get_max_durability();
+                }
+            }
+        }
+        hud_data.selected_slot = inventory.get_selected_slot();
+
+        // Player stats
+        hud_data.health = player_stats.health;
+        hud_data.max_health = player_stats.max_health;
+        hud_data.hunger = player_stats.hunger;
+        hud_data.max_hunger = player_stats.max_hunger;
+
+        // Debug info
+        hud_data.fps = engine.get_game_loop()->get_fps();
+        hud_data.frame_time_ms = engine.get_game_loop()->get_unscaled_delta_time() * 1000.0;
+        hud_data.player_position = player_controller.get_position();
+        hud_data.chunk_x =
+            static_cast<int32_t>(std::floor(hud_data.player_position.x / static_cast<double>(world::CHUNK_SIZE_X)));
+        hud_data.chunk_z =
+            static_cast<int32_t>(std::floor(hud_data.player_position.z / static_cast<double>(world::CHUNK_SIZE_Z)));
+        hud_data.camera_pitch = render_system.get_camera().get_pitch();
+        hud_data.camera_yaw = render_system.get_camera().get_yaw();
+
+        const auto& render_stats = render_system.get_stats();
+        hud_data.chunks_rendered = render_stats.chunks_rendered;
+        hud_data.chunks_culled = render_stats.chunks_culled;
+        hud_data.triangles = render_stats.triangles_rendered;
+        hud_data.draw_calls = render_stats.draw_calls;
+        hud_data.time_of_day = render_system.get_day_night_cycle().get_time();
+
+        render_system.get_hud_renderer().update(hud_data);
 
         // Update render system
         render_system.update(dt);
