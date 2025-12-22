@@ -182,6 +182,7 @@ public:
     [[nodiscard]] bool has_collision() const { return has_flag(flags_, BlockFlags::HasCollision); }
     [[nodiscard]] bool is_breakable() const { return has_flag(flags_, BlockFlags::Breakable); }
     [[nodiscard]] bool has_block_state() const { return has_flag(flags_, BlockFlags::HasBlockState); }
+    [[nodiscard]] bool is_climbable() const { return has_flag(flags_, BlockFlags::Climbable); }
     [[nodiscard]] bool is_air() const { return id_ == BLOCK_AIR; }
 
     // Rendering
@@ -257,6 +258,7 @@ public:
     [[nodiscard]] BlockId grass_id() const { return grass_id_; }
     [[nodiscard]] BlockId water_id() const { return water_id_; }
     [[nodiscard]] BlockId sand_id() const { return sand_id_; }
+    [[nodiscard]] BlockId ladder_id() const { return ladder_id_; }
 
 private:
     BlockRegistry();
@@ -271,6 +273,7 @@ private:
     BlockId grass_id_ = BLOCK_INVALID;
     BlockId water_id_ = BLOCK_INVALID;
     BlockId sand_id_ = BLOCK_INVALID;
+    BlockId ladder_id_ = BLOCK_INVALID;
 };
 
 }  // namespace realcraft::world

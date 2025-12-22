@@ -885,6 +885,24 @@ void BlockRegistry::register_defaults() {
         impl_->name_to_id[desc.name] = id;
     }
 
+    // Ladder (ID 56) - Climbable block
+    {
+        BlockTypeDesc desc;
+        desc.name = "realcraft:ladder";
+        desc.display_name = "Ladder";
+        desc.flags = BlockFlags::Transparent | BlockFlags::HasCollision | BlockFlags::Breakable |
+                     BlockFlags::Climbable | BlockFlags::HasBlockState;
+        desc.material = MaterialProperties::wood();
+        desc.material.weight = 20.0f;            // Very light
+        desc.material.requires_support = false;  // Can be placed on walls
+        desc.texture_index = 64;
+        desc.light_absorption = 0;  // Fully transparent
+        desc.state_count = 4;       // 4 orientations
+        ladder_id_ = static_cast<BlockId>(impl_->blocks.size());
+        impl_->blocks.push_back(std::unique_ptr<BlockType>(new BlockType(ladder_id_, desc)));
+        impl_->name_to_id[desc.name] = ladder_id_;
+    }
+
     REALCRAFT_LOG_INFO(core::log_category::WORLD, "Registered {} default block types", impl_->blocks.size());
 }
 

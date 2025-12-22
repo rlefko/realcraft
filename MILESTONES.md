@@ -490,26 +490,26 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ---
 
-## Phase 6: Core Gameplay Systems `[ ]`
+## Phase 6: Core Gameplay Systems `[~]`
 
 **Goal:** Implement player interaction, inventory, and basic gameplay loop
 
-### Milestone 6.1: Player Controller `[Medium]`
+### Milestone 6.1: Player Controller `[Medium]` `[x]`
 
-- [ ] Implement first-person camera control
-  - [ ] Mouse look
-  - [ ] Look sensitivity settings
-  - [ ] Head bob (optional)
-- [ ] Implement movement
-  - [ ] WASD movement
-  - [ ] Sprint (shift)
-  - [ ] Crouch (ctrl)
-  - [ ] Jump (space)
-- [ ] Implement player state machine
-  - [ ] Walking/running/crouching
-  - [ ] Swimming
-  - [ ] Falling
-  - [ ] Climbing (ladders)
+- [x] Implement first-person camera control
+  - [x] Mouse look
+  - [x] Look sensitivity settings
+  - [x] Head bob (optional)
+- [x] Implement movement
+  - [x] WASD movement
+  - [x] Sprint (shift)
+  - [x] Crouch (ctrl)
+  - [x] Jump (space)
+- [x] Implement player state machine
+  - [x] Walking/running/crouching
+  - [x] Swimming
+  - [x] Falling
+  - [x] Climbing (ladders)
 
 ### Milestone 6.2: Block Interaction `[Medium]`
 

@@ -169,17 +169,18 @@ enum class ChunkState : uint8_t {
 
 enum class BlockFlags : uint32_t {
     None = 0,
-    Solid = 1 << 0,          // Blocks movement
-    Transparent = 1 << 1,    // Light passes through
-    Liquid = 1 << 2,         // Water, lava
-    Emissive = 1 << 3,       // Emits light
-    Gravity = 1 << 4,        // Falls like sand
-    Flammable = 1 << 5,      // Can catch fire
-    Replaceable = 1 << 6,    // Can be replaced by placement (grass, flowers)
-    FullCube = 1 << 7,       // Occupies entire block space
-    HasCollision = 1 << 8,   // Has collision mesh
-    Breakable = 1 << 9,      // Can be broken by player
-    HasBlockState = 1 << 10  // Has variant states
+    Solid = 1 << 0,           // Blocks movement
+    Transparent = 1 << 1,     // Light passes through
+    Liquid = 1 << 2,          // Water, lava
+    Emissive = 1 << 3,        // Emits light
+    Gravity = 1 << 4,         // Falls like sand
+    Flammable = 1 << 5,       // Can catch fire
+    Replaceable = 1 << 6,     // Can be replaced by placement (grass, flowers)
+    FullCube = 1 << 7,        // Occupies entire block space
+    HasCollision = 1 << 8,    // Has collision mesh
+    Breakable = 1 << 9,       // Can be broken by player
+    HasBlockState = 1 << 10,  // Has variant states
+    Climbable = 1 << 11       // Can be climbed (ladders, vines)
 };
 
 inline BlockFlags operator|(BlockFlags a, BlockFlags b) {

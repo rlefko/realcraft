@@ -29,6 +29,19 @@ enum class PlayerState : uint8_t {
     Swimming   // In water
 };
 
+// Movement sub-state (for animations, sounds, gameplay systems)
+enum class MovementState : uint8_t {
+    Idle,        // Standing still
+    Walking,     // Moving at walk speed
+    Running,     // Sprinting
+    Crouching,   // Moving while crouched
+    CrouchIdle,  // Crouched but not moving
+    Jumping,     // Ascending from jump
+    Falling,     // Descending
+    Swimming,    // In water
+    Climbing     // On ladder
+};
+
 // ============================================================================
 // Player Input
 // ============================================================================
@@ -108,6 +121,21 @@ struct PlayerControllerConfig {
     double gravity = 32.0;            // Blocks/s^2
     double terminal_velocity = 78.0;  // Max fall speed
     double swim_gravity = 4.0;        // Reduced gravity in water
+
+    // Crouch dimensions
+    double crouch_capsule_height = 1.3;    // Height when crouching
+    double crouch_eye_height = 1.1;        // Eye height when crouching
+    double crouch_transition_speed = 8.0;  // Speed of height transition
+
+    // Head bob
+    bool enable_head_bob = true;
+    double head_bob_frequency_walk = 1.8;          // Cycles per second walking
+    double head_bob_frequency_run = 2.4;           // Cycles per second running
+    double head_bob_amplitude_vertical = 0.035;    // Vertical bob meters
+    double head_bob_amplitude_horizontal = 0.025;  // Horizontal sway meters
+
+    // Ladder climbing
+    double climb_speed = 3.0;  // Ladder climbing speed (m/s)
 };
 
 // ============================================================================
@@ -163,11 +191,16 @@ public:
     // ========================================================================
 
     [[nodiscard]] PlayerState get_state() const;
+    [[nodiscard]] MovementState get_movement_state() const;
     [[nodiscard]] bool is_grounded() const;
     [[nodiscard]] bool is_swimming() const;
     [[nodiscard]] bool is_sprinting() const;
     [[nodiscard]] bool is_crouching() const;
+    [[nodiscard]] bool is_climbing() const;
+    [[nodiscard]] bool is_idle() const;
     [[nodiscard]] bool is_on_slope() const;
+    [[nodiscard]] bool wants_to_stand() const;
+    [[nodiscard]] glm::dvec3 get_head_bob_offset() const;
     [[nodiscard]] const GroundInfo& get_ground_info() const;
 
     // ========================================================================
