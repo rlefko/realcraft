@@ -157,8 +157,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // Set initial player position (above ground)
     player_controller.set_position({0.0, 80.0, 0.0});
 
-    // Set initial camera rotation (looking forward)
-    render_system.get_camera().set_rotation(-90.0f, -20.0f);
+    // Set initial camera rotation (looking forward and slightly down)
+    // set_rotation(pitch, yaw): pitch=-20° (slightly down), yaw=-90° (along -Z axis)
+    render_system.get_camera().set_rotation(-20.0f, -90.0f);
 
     // Set initial player position for chunk loading
     world_manager.set_player_position({0.0, 80.0, 0.0});
