@@ -4,6 +4,7 @@
 #include <realcraft/core/config.hpp>
 #include <realcraft/core/engine.hpp>
 #include <realcraft/core/logger.hpp>
+#include <realcraft/gameplay/block_interaction.hpp>
 #include <realcraft/graphics/command_buffer.hpp>
 #include <realcraft/graphics/swap_chain.hpp>
 #include <realcraft/graphics/types.hpp>
@@ -164,6 +165,23 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // Set initial player position for chunk loading
     world_manager.set_player_position({0.0, 80.0, 0.0});
 
+    // Initialize Block Interaction System
+    gameplay::BlockInteractionConfig interaction_config;
+    interaction_config.reach_distance = 5.0;
+    interaction_config.base_break_speed = 1.0;
+
+    gameplay::BlockInteractionSystem block_interaction;
+    if (!block_interaction.initialize(&physics_world, &player_controller, &world_manager, &render_system.get_camera(),
+                                      interaction_config)) {
+        REALCRAFT_LOG_ERROR(core::log_category::ENGINE, "Failed to initialize Block Interaction System");
+        player_controller.shutdown();
+        physics_world.shutdown();
+        render_system.shutdown();
+        world_manager.shutdown();
+        return 1;
+    }
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Block Interaction System: OK");
+
     // Pre-load central chunk synchronously so there's something to see immediately
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Pre-loading central chunk...");
     (void)world_manager.load_chunk_sync({0, 0});
@@ -183,7 +201,9 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Shift - Sprint");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Ctrl - Crouch");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Mouse - Look around");
-    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Click - Capture mouse");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Left Click - Break block (hold)");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Right Click - Place block");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Scroll - Cycle held block");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  ESC - Release mouse / Exit");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  F11 - Toggle fullscreen");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  T - Toggle wireframe");
@@ -207,7 +227,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
 
     // Variable update callback (every frame)
     engine.set_update_callback([&engine, &world_manager, &render_system, &player_controller, &player_input,
-                                &input_mapper](double dt) {
+                                &input_mapper, &block_interaction](double dt) {
         auto* input = engine.get_input();
         auto* window = engine.get_window();
 
@@ -288,6 +308,35 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             player_input.jump_just_pressed = true;
         }
 
+        // Block interaction input (only when mouse is captured)
+        if (input->is_mouse_captured()) {
+            block_interaction.on_primary_action(input_mapper.is_action_pressed("primary_action"));
+            block_interaction.on_secondary_action(input_mapper.is_action_just_pressed("secondary_action"));
+
+            // Scroll wheel to cycle held block
+            auto scroll = input->get_scroll_delta();
+            if (scroll.y > 0.1) {
+                block_interaction.cycle_held_block(true);
+            } else if (scroll.y < -0.1) {
+                block_interaction.cycle_held_block(false);
+            }
+        } else {
+            // Release primary action when mouse not captured
+            block_interaction.on_primary_action(false);
+        }
+
+        // Update block interaction system
+        block_interaction.update(dt);
+
+        // Update block selection highlight for rendering
+        const auto& target = block_interaction.get_target();
+        if (target.has_target) {
+            float break_progress = static_cast<float>(block_interaction.get_mining_progress().progress);
+            render_system.set_block_selection(&target.block_position, break_progress);
+        } else {
+            render_system.clear_block_selection();
+        }
+
         // Sync camera position to interpolated player eye position
         double interpolation = engine.get_game_loop()->get_interpolation();
         glm::dvec3 eye_pos = player_controller.get_interpolated_eye_position(interpolation);
@@ -310,6 +359,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     engine.run();
 
     // Cleanup
+    block_interaction.shutdown();
     player_controller.shutdown();
     physics_world.shutdown();
     render_system.shutdown();

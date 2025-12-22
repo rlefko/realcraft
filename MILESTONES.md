@@ -513,20 +513,20 @@ This document outlines the complete development roadmap for RealCraft, organized
 
 ### Milestone 6.2: Block Interaction `[Medium]`
 
-- [ ] Implement block targeting
-  - [ ] Ray cast from camera
-  - [ ] Target block highlight
-  - [ ] Reach distance limit
-  - [ ] Adjacent face detection for placement
-- [ ] Implement block breaking
-  - [ ] Mining progress system
-  - [ ] Tool effectiveness
-  - [ ] Breaking animation/particles
-  - [ ] Block drop on break
-- [ ] Implement block placement
-  - [ ] Place on targeted face
-  - [ ] Placement validation
-  - [ ] Orientation handling
+- [x] Implement block targeting
+  - [x] Ray cast from camera
+  - [x] Target block highlight
+  - [x] Reach distance limit
+  - [x] Adjacent face detection for placement
+- [x] Implement block breaking
+  - [x] Mining progress system
+  - [x] Tool effectiveness
+  - [x] Breaking animation/particles
+  - [x] Block drop on break
+- [x] Implement block placement
+  - [x] Place on targeted face
+  - [x] Placement validation
+  - [x] Orientation handling
   - [ ] Place sound
 
 ### Milestone 6.3: Inventory System `[Medium]`
