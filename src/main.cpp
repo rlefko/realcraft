@@ -10,6 +10,7 @@
 #include <realcraft/physics/physics_world.hpp>
 #include <realcraft/physics/player_controller.hpp>
 #include <realcraft/platform/input.hpp>
+#include <realcraft/platform/input_action.hpp>
 #include <realcraft/rendering/render_system.hpp>
 #include <realcraft/world/world_manager.hpp>
 
@@ -165,11 +166,16 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // Shared player input state (updated in update callback, used in fixed_update)
     physics::PlayerInput player_input;
 
+    // Create input mapper for rebindable controls
+    platform::InputMapper input_mapper(engine.get_input());
+    input_mapper.load_defaults();
+
     // Log controls
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Controls:");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  WASD - Move player");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Space - Jump");
-    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Ctrl - Sprint");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Shift - Sprint");
+    REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Ctrl - Crouch");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Mouse - Look around");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  Click - Capture mouse");
     REALCRAFT_LOG_INFO(core::log_category::ENGINE, "  ESC - Release mouse / Exit");
@@ -194,12 +200,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     });
 
     // Variable update callback (every frame)
-    engine.set_update_callback([&engine, &world_manager, &render_system, &player_controller, &player_input](double dt) {
+    engine.set_update_callback([&engine, &world_manager, &render_system, &player_controller, &player_input,
+                                &input_mapper](double dt) {
         auto* input = engine.get_input();
         auto* window = engine.get_window();
 
-        // Handle input
-        if (input->is_key_just_pressed(platform::KeyCode::Escape)) {
+        // Handle UI/system input (not rebindable)
+        if (input_mapper.is_action_just_pressed("toggle_pause")) {
             if (input->is_mouse_captured()) {
                 input->set_mouse_captured(false);
                 REALCRAFT_LOG_INFO(core::log_category::INPUT, "Mouse released");
@@ -208,7 +215,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             }
         }
 
-        if (input->is_key_just_pressed(platform::KeyCode::F11)) {
+        if (input_mapper.is_action_just_pressed("toggle_fullscreen")) {
             window->set_fullscreen(!window->is_fullscreen());
             REALCRAFT_LOG_INFO(core::log_category::ENGINE, "Fullscreen: {}", window->is_fullscreen() ? "ON" : "OFF");
         }
@@ -227,7 +234,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
         }
 
         // Capture mouse on left click
-        if (input->is_mouse_button_just_pressed(platform::MouseButton::Left)) {
+        if (input_mapper.is_action_just_pressed("primary_action")) {
             if (!input->is_mouse_captured()) {
                 input->set_mouse_captured(true);
                 REALCRAFT_LOG_INFO(core::log_category::INPUT, "Mouse captured");
@@ -242,18 +249,18 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
                                               static_cast<float>(mouse_delta.x) * sensitivity);
         }
 
-        // Build player movement input from WASD in camera space
+        // Build player movement input from action mappings
         glm::vec3 local_move(0.0f);
-        if (input->is_key_pressed(platform::KeyCode::W)) {
+        if (input_mapper.is_action_pressed("move_forward")) {
             local_move.z += 1.0f;
         }
-        if (input->is_key_pressed(platform::KeyCode::S)) {
+        if (input_mapper.is_action_pressed("move_backward")) {
             local_move.z -= 1.0f;
         }
-        if (input->is_key_pressed(platform::KeyCode::D)) {
+        if (input_mapper.is_action_pressed("move_right")) {
             local_move.x += 1.0f;
         }
-        if (input->is_key_pressed(platform::KeyCode::A)) {
+        if (input_mapper.is_action_pressed("move_left")) {
             local_move.x -= 1.0f;
         }
 
@@ -266,11 +273,12 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
             world_move = glm::normalize(world_move);
         }
 
-        // Update player input for physics
+        // Update player input for physics using action mappings
         player_input.move_direction = world_move;
-        player_input.sprint_pressed = input->is_key_pressed(platform::KeyCode::LeftControl);
-        player_input.jump_pressed = input->is_key_pressed(platform::KeyCode::Space);
-        if (input->is_key_just_pressed(platform::KeyCode::Space)) {
+        player_input.sprint_pressed = input_mapper.is_action_pressed("sprint");
+        player_input.crouch_pressed = input_mapper.is_action_pressed("crouch");
+        player_input.jump_pressed = input_mapper.is_action_pressed("jump");
+        if (input_mapper.is_action_just_pressed("jump")) {
             player_input.jump_just_pressed = true;
         }
 

@@ -369,5 +369,166 @@ TEST_F(PlayerControllerTest, MoveAssignment) {
     controller2.shutdown();
 }
 
+// ============================================================================
+// Crouch Tests (Milestone 6.1)
+// ============================================================================
+
+TEST_F(PlayerControllerTest, CrouchConfigDefaults) {
+    PlayerControllerConfig config = player_controller.get_config();
+
+    EXPECT_NEAR(config.crouch_capsule_height, 1.3, 1e-6);
+    EXPECT_NEAR(config.crouch_eye_height, 1.1, 1e-6);
+    EXPECT_GT(config.crouch_transition_speed, 0.0);
+}
+
+TEST_F(PlayerControllerTest, CrouchReducesHeight) {
+    player_controller.set_position(glm::dvec3(0.0, 100.0, 0.0));
+
+    // Initial standing bounds
+    AABB standing_bounds = player_controller.get_bounds();
+    double standing_height = standing_bounds.max.y - standing_bounds.min.y;
+
+    // Crouch for several frames
+    PlayerInput input;
+    input.crouch_pressed = true;
+    for (int i = 0; i < 60; i++) {  // 1 second of updates
+        player_controller.fixed_update(1.0 / 60.0, input);
+    }
+
+    // Crouching bounds should be shorter
+    AABB crouching_bounds = player_controller.get_bounds();
+    double crouching_height = crouching_bounds.max.y - crouching_bounds.min.y;
+
+    EXPECT_LT(crouching_height, standing_height);
+    EXPECT_TRUE(player_controller.is_crouching());
+}
+
+TEST_F(PlayerControllerTest, WantsToStandInitiallyFalse) {
+    EXPECT_FALSE(player_controller.wants_to_stand());
+}
+
+// ============================================================================
+// Head Bob Tests (Milestone 6.1)
+// ============================================================================
+
+TEST_F(PlayerControllerTest, HeadBobConfigDefaults) {
+    PlayerControllerConfig config = player_controller.get_config();
+
+    EXPECT_TRUE(config.enable_head_bob);
+    EXPECT_GT(config.head_bob_frequency_walk, 0.0);
+    EXPECT_GT(config.head_bob_frequency_run, config.head_bob_frequency_walk);
+    EXPECT_GT(config.head_bob_amplitude_vertical, 0.0);
+    EXPECT_GT(config.head_bob_amplitude_horizontal, 0.0);
+}
+
+TEST_F(PlayerControllerTest, HeadBobOffsetZeroWhenIdle) {
+    player_controller.set_position(glm::dvec3(0.0, 100.0, 0.0));
+    player_controller.set_velocity(glm::dvec3(0.0, 0.0, 0.0));
+
+    PlayerInput input;
+    player_controller.fixed_update(1.0 / 60.0, input);
+
+    glm::dvec3 offset = player_controller.get_head_bob_offset();
+    EXPECT_NEAR(glm::length(offset), 0.0, 0.01);
+}
+
+TEST_F(PlayerControllerTest, HeadBobDisabledWhenConfigured) {
+    PlayerControllerConfig config = player_controller.get_config();
+    config.enable_head_bob = false;
+    player_controller.set_config(config);
+
+    player_controller.set_position(glm::dvec3(0.0, 100.0, 0.0));
+    player_controller.set_velocity(glm::dvec3(5.0, 0.0, 0.0));
+
+    PlayerInput input;
+    input.move_direction = glm::vec3(1.0f, 0.0f, 0.0f);
+    player_controller.fixed_update(1.0 / 60.0, input);
+
+    glm::dvec3 offset = player_controller.get_head_bob_offset();
+    EXPECT_NEAR(glm::length(offset), 0.0, 1e-6);
+}
+
+// ============================================================================
+// Movement State Tests (Milestone 6.1)
+// ============================================================================
+
+TEST_F(PlayerControllerTest, MovementStateIdle) {
+    player_controller.set_position(glm::dvec3(0.0, 100.0, 0.0));
+    player_controller.set_velocity(glm::dvec3(0.0, 0.0, 0.0));
+
+    PlayerInput input;
+    player_controller.fixed_update(1.0 / 60.0, input);
+
+    // When airborne with no velocity, state should be Falling
+    MovementState state = player_controller.get_movement_state();
+    EXPECT_EQ(state, MovementState::Falling);  // In the air = falling
+}
+
+TEST_F(PlayerControllerTest, MovementStateJumping) {
+    player_controller.set_position(glm::dvec3(0.0, 100.0, 0.0));
+    player_controller.set_velocity(glm::dvec3(0.0, 10.0, 0.0));  // Moving up
+
+    PlayerInput input;
+    player_controller.fixed_update(1.0 / 60.0, input);
+
+    MovementState state = player_controller.get_movement_state();
+    EXPECT_EQ(state, MovementState::Jumping);
+}
+
+TEST_F(PlayerControllerTest, MovementStateFalling) {
+    player_controller.set_position(glm::dvec3(0.0, 100.0, 0.0));
+    player_controller.set_velocity(glm::dvec3(0.0, -10.0, 0.0));  // Moving down
+
+    PlayerInput input;
+    player_controller.fixed_update(1.0 / 60.0, input);
+
+    MovementState state = player_controller.get_movement_state();
+    EXPECT_EQ(state, MovementState::Falling);
+}
+
+TEST_F(PlayerControllerTest, IsIdleQuery) {
+    player_controller.set_position(glm::dvec3(0.0, 100.0, 0.0));
+    player_controller.set_velocity(glm::dvec3(0.0, 0.0, 0.0));
+
+    PlayerInput input;
+    player_controller.fixed_update(1.0 / 60.0, input);
+
+    // When in air, is_idle should be false
+    EXPECT_FALSE(player_controller.is_idle());
+}
+
+// ============================================================================
+// Climbing Tests (Milestone 6.1)
+// ============================================================================
+
+TEST_F(PlayerControllerTest, IsClimbingInitiallyFalse) {
+    EXPECT_FALSE(player_controller.is_climbing());
+}
+
+TEST_F(PlayerControllerTest, ClimbSpeedConfigurable) {
+    PlayerControllerConfig config = player_controller.get_config();
+    EXPECT_GT(config.climb_speed, 0.0);
+
+    config.climb_speed = 5.0;
+    player_controller.set_config(config);
+
+    EXPECT_NEAR(player_controller.get_config().climb_speed, 5.0, 1e-6);
+}
+
+// ============================================================================
+// Climbable Block Tests (Milestone 6.1)
+// ============================================================================
+
+TEST_F(PlayerControllerTest, LadderBlockRegistered) {
+    // Verify ladder block is registered
+    world::BlockId ladder_id = world::BlockRegistry::instance().ladder_id();
+    EXPECT_NE(ladder_id, world::BLOCK_INVALID);
+
+    const world::BlockType* ladder = world::BlockRegistry::instance().get(ladder_id);
+    ASSERT_NE(ladder, nullptr);
+    EXPECT_TRUE(ladder->is_climbable());
+    EXPECT_EQ(ladder->get_name(), "realcraft:ladder");
+}
+
 }  // namespace
 }  // namespace realcraft::physics

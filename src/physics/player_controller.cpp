@@ -2,6 +2,7 @@
 // player_controller.cpp - Physics-based player movement controller implementation
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <realcraft/physics/fluid_simulation.hpp>
 #include <realcraft/physics/physics_world.hpp>
@@ -36,6 +37,19 @@ struct PlayerController::Impl {
     bool is_sprinting = false;
     bool is_crouching = false;
 
+    // Crouch state
+    double current_capsule_height = 1.8;  // Interpolated capsule height
+    double current_eye_height = 1.6;      // Interpolated eye height
+    bool wants_to_stand_ = false;         // Player wants to stand but blocked
+
+    // Head bob state
+    double head_bob_timer = 0.0;
+    glm::dvec3 head_bob_offset{0.0};
+
+    // Ladder climbing state
+    bool is_on_ladder = false;
+    glm::dvec3 ladder_normal{0.0, 0.0, 1.0};  // Direction facing away from ladder
+
     // Jump state
     bool wants_jump = false;
     bool is_jumping = false;
@@ -63,6 +77,14 @@ struct PlayerController::Impl {
     bool is_position_in_water(const glm::dvec3& pos) const;
     bool is_position_solid(const glm::dvec3& pos) const;
     double calculate_jump_velocity(double desired_height, double gravity) const;
+
+    // Crouch, head bob, and ladder mechanics
+    void update_crouch(double dt, const PlayerInput& input);
+    void update_head_bob(double dt);
+    void update_ladder_detection();
+    void handle_ladder_movement(double dt, const PlayerInput& input);
+    MovementState determine_movement_state() const;
+    bool check_ceiling_clearance(double height_needed) const;
 };
 
 // ============================================================================
@@ -191,9 +213,8 @@ void PlayerController::Impl::update_state() {
 // ============================================================================
 
 void PlayerController::Impl::update_movement(double dt, const PlayerInput& input) {
-    // Update sprint/crouch state
+    // Update sprint state (crouch is handled by update_crouch)
     is_sprinting = input.sprint_pressed && state == PlayerState::Grounded && glm::length(input.move_direction) > 0.1f;
-    is_crouching = input.crouch_pressed && state == PlayerState::Grounded;
 
     // Determine target speed based on state
     double target_speed = config.walk_speed;
@@ -552,6 +573,243 @@ void PlayerController::Impl::resolve_collisions(glm::dvec3& new_position) {
 }
 
 // ============================================================================
+// Crouch Mechanics
+// ============================================================================
+
+bool PlayerController::Impl::check_ceiling_clearance(double height_needed) const {
+    if (!physics_world) {
+        return true;  // Assume clear if no physics world
+    }
+
+    // Cast ray upward from current head position to check for ceiling
+    glm::dvec3 head_pos = position;
+    head_pos.y += current_capsule_height / 2.0;
+
+    auto ceiling_hit = physics_world->raycast_voxels(head_pos, glm::dvec3(0.0, 1.0, 0.0), height_needed + 0.1);
+
+    return !ceiling_hit || ceiling_hit->distance >= height_needed;
+}
+
+void PlayerController::Impl::update_crouch(double dt, const PlayerInput& input) {
+    // Determine target heights based on crouch state
+    double target_capsule_height = input.crouch_pressed ? config.crouch_capsule_height : config.capsule_height;
+    double target_eye_height = input.crouch_pressed ? config.crouch_eye_height : config.eye_height;
+
+    // If trying to stand up, check if blocked above
+    if (!input.crouch_pressed && current_capsule_height < config.capsule_height - 0.01) {
+        double height_diff = config.capsule_height - current_capsule_height;
+
+        if (!check_ceiling_clearance(height_diff)) {
+            // Blocked - remain crouched
+            target_capsule_height = current_capsule_height;
+            target_eye_height = current_eye_height;
+            wants_to_stand_ = true;
+        } else {
+            wants_to_stand_ = false;
+        }
+    } else {
+        wants_to_stand_ = false;
+    }
+
+    // Smoothly interpolate heights
+    double transition_speed = config.crouch_transition_speed * dt;
+    transition_speed = std::min(1.0, transition_speed);
+
+    current_capsule_height += (target_capsule_height - current_capsule_height) * transition_speed;
+    current_eye_height += (target_eye_height - current_eye_height) * transition_speed;
+
+    // Update is_crouching based on actual height
+    is_crouching = current_capsule_height < config.capsule_height - 0.1;
+}
+
+// ============================================================================
+// Head Bob
+// ============================================================================
+
+void PlayerController::Impl::update_head_bob(double dt) {
+    if (!config.enable_head_bob) {
+        head_bob_offset = glm::dvec3(0.0);
+        return;
+    }
+
+    // Don't bob when not grounded, swimming, or crouching
+    if (state != PlayerState::Grounded || !ground_info.stable || is_crouching || is_on_ladder) {
+        // Fade out bob
+        head_bob_timer = 0.0;
+        head_bob_offset *= 0.8;
+        if (glm::length(head_bob_offset) < 0.001) {
+            head_bob_offset = glm::dvec3(0.0);
+        }
+        return;
+    }
+
+    // Calculate horizontal speed
+    double horiz_speed = glm::length(glm::dvec2(velocity.x, velocity.z));
+
+    if (horiz_speed < 0.5) {
+        // Fade out bob when slowing down
+        head_bob_timer = 0.0;
+        head_bob_offset *= 0.8;
+        if (glm::length(head_bob_offset) < 0.001) {
+            head_bob_offset = glm::dvec3(0.0);
+        }
+        return;
+    }
+
+    // Determine bob frequency based on movement speed
+    double bob_freq = is_sprinting ? config.head_bob_frequency_run : config.head_bob_frequency_walk;
+
+    // Advance bob timer
+    head_bob_timer += dt * bob_freq * 2.0 * M_PI;
+    if (head_bob_timer > 2.0 * M_PI) {
+        head_bob_timer -= 2.0 * M_PI;
+    }
+
+    // Calculate bob offsets
+    // Vertical: full sine wave per cycle
+    double vertical = std::sin(head_bob_timer) * config.head_bob_amplitude_vertical;
+
+    // Horizontal: half frequency (sway side to side)
+    double horizontal = std::sin(head_bob_timer * 0.5) * config.head_bob_amplitude_horizontal;
+
+    // Scale by movement speed (normalized to walk speed)
+    double speed_factor = std::min(1.0, horiz_speed / config.walk_speed);
+
+    head_bob_offset = glm::dvec3(horizontal, vertical, 0.0) * speed_factor;
+}
+
+// ============================================================================
+// Ladder Climbing
+// ============================================================================
+
+void PlayerController::Impl::update_ladder_detection() {
+    bool was_on_ladder = is_on_ladder;
+    is_on_ladder = false;
+
+    if (!world_manager) {
+        return;
+    }
+
+    // Check blocks at player's feet, center, and head positions
+    std::array<double, 3> height_offsets = {
+        -current_capsule_height / 2.0 + 0.3,  // Feet level
+        0.0,                                  // Center
+        current_capsule_height / 2.0 - 0.3    // Head level
+    };
+
+    for (double offset_y : height_offsets) {
+        glm::dvec3 check_pos = position + glm::dvec3(0.0, offset_y, 0.0);
+        world::WorldBlockPos block_pos = world::world_to_block(check_pos);
+        world::BlockId block_id = world_manager->get_block(block_pos);
+
+        const world::BlockType* block_type = world::BlockRegistry::instance().get(block_id);
+        if (block_type && block_type->is_climbable()) {
+            is_on_ladder = true;
+
+            // Determine ladder orientation from block state (simplified: assume facing +Z)
+            // In a full implementation, we'd read the block state to get orientation
+            world::BlockStateId block_state = world_manager->get_block_state(block_pos);
+
+            // Extract orientation from block state (bits 0-2 for rotation)
+            uint8_t orientation = block_state & 0x03;
+            switch (orientation) {
+                case 0:
+                    ladder_normal = glm::dvec3(0.0, 0.0, 1.0);
+                    break;  // Facing +Z
+                case 1:
+                    ladder_normal = glm::dvec3(1.0, 0.0, 0.0);
+                    break;  // Facing +X
+                case 2:
+                    ladder_normal = glm::dvec3(0.0, 0.0, -1.0);
+                    break;  // Facing -Z
+                case 3:
+                    ladder_normal = glm::dvec3(-1.0, 0.0, 0.0);
+                    break;  // Facing -X
+                default:
+                    ladder_normal = glm::dvec3(0.0, 0.0, 1.0);
+                    break;
+            }
+            return;
+        }
+    }
+
+    // If we just left the ladder, give a tiny velocity boost outward
+    if (was_on_ladder && !is_on_ladder && state == PlayerState::Airborne) {
+        // Small push away from where ladder was
+        velocity += ladder_normal * 0.5;
+    }
+}
+
+void PlayerController::Impl::handle_ladder_movement([[maybe_unused]] double dt, const PlayerInput& input) {
+    if (!is_on_ladder) {
+        return;
+    }
+
+    double climb_speed = config.climb_speed;
+
+    // Ladder movement: forward/backward input controls up/down
+    glm::dvec3 wish_vel{0.0};
+
+    // W/S (forward/backward in input) controls vertical movement
+    if (input.move_direction.z > 0.1f) {
+        wish_vel.y = climb_speed;  // Climb up
+    } else if (input.move_direction.z < -0.1f) {
+        wish_vel.y = -climb_speed;  // Climb down
+    }
+
+    // A/D controls lateral movement along the ladder
+    if (std::abs(input.move_direction.x) > 0.1f) {
+        glm::dvec3 strafe_dir = glm::cross(glm::dvec3(0.0, 1.0, 0.0), ladder_normal);
+        wish_vel += strafe_dir * static_cast<double>(input.move_direction.x) * climb_speed * 0.5;
+    }
+
+    // Apply velocity directly (responsive climbing feel)
+    velocity = wish_vel;
+
+    // Jump off ladder
+    if (input.jump_just_pressed) {
+        // Push player away from ladder and give upward boost
+        velocity = ladder_normal * config.walk_speed * 0.6;
+        velocity.y = calculate_jump_velocity(config.jump_height * 0.6, config.gravity);
+        is_on_ladder = false;
+        state = PlayerState::Airborne;
+        time_since_grounded = config.coyote_time + 1.0;  // Prevent immediate re-grab
+    }
+}
+
+// ============================================================================
+// Movement State
+// ============================================================================
+
+MovementState PlayerController::Impl::determine_movement_state() const {
+    if (state == PlayerState::Swimming) {
+        return MovementState::Swimming;
+    }
+
+    if (is_on_ladder) {
+        return MovementState::Climbing;
+    }
+
+    if (state == PlayerState::Airborne) {
+        return velocity.y > 0.0 ? MovementState::Jumping : MovementState::Falling;
+    }
+
+    // Grounded states
+    double horiz_speed = glm::length(glm::dvec2(velocity.x, velocity.z));
+    bool moving = horiz_speed > 0.5;
+
+    if (is_crouching) {
+        return moving ? MovementState::Crouching : MovementState::CrouchIdle;
+    }
+
+    if (!moving) {
+        return MovementState::Idle;
+    }
+
+    return is_sprinting ? MovementState::Running : MovementState::Walking;
+}
+
+// ============================================================================
 // PlayerController Public Methods
 // ============================================================================
 
@@ -582,6 +840,10 @@ bool PlayerController::initialize(PhysicsWorld* physics_world, world::WorldManag
     impl_->initialized = true;
     impl_->enabled = true;
 
+    // Initialize current heights to standing height
+    impl_->current_capsule_height = config.capsule_height;
+    impl_->current_eye_height = config.eye_height;
+
     return true;
 }
 
@@ -607,19 +869,32 @@ void PlayerController::fixed_update(double fixed_delta, const PlayerInput& input
     // Update detections
     impl_->update_ground_detection();
     impl_->update_water_detection();
+    impl_->update_ladder_detection();
     impl_->update_state();
 
-    // Handle slope sliding first
-    impl_->handle_slope_sliding(fixed_delta);
+    // Update crouch state (smooth height transitions)
+    impl_->update_crouch(fixed_delta, input);
 
-    // Handle jumping
-    impl_->handle_jump(fixed_delta, input);
+    // Handle ladder movement separately
+    if (impl_->is_on_ladder) {
+        impl_->handle_ladder_movement(fixed_delta, input);
+        // Skip normal movement when on ladder
+    } else {
+        // Handle slope sliding first
+        impl_->handle_slope_sliding(fixed_delta);
 
-    // Update movement
-    impl_->update_movement(fixed_delta, input);
+        // Handle jumping
+        impl_->handle_jump(fixed_delta, input);
 
-    // Apply gravity
-    impl_->apply_gravity(fixed_delta);
+        // Update movement
+        impl_->update_movement(fixed_delta, input);
+
+        // Apply gravity
+        impl_->apply_gravity(fixed_delta);
+    }
+
+    // Update head bob (after movement to get correct velocity)
+    impl_->update_head_bob(fixed_delta);
 
     // Apply water current push when swimming
     if (impl_->state == PlayerState::Swimming && impl_->physics_world) {
@@ -664,7 +939,8 @@ glm::dvec3 PlayerController::get_position() const {
 
 glm::dvec3 PlayerController::get_eye_position() const {
     glm::dvec3 eye = impl_->position;
-    eye.y += impl_->config.eye_height - impl_->config.capsule_height / 2.0;
+    eye.y += impl_->current_eye_height - impl_->current_capsule_height / 2.0;
+    eye += impl_->head_bob_offset;
     return eye;
 }
 
@@ -674,7 +950,8 @@ glm::dvec3 PlayerController::get_interpolated_position(double alpha) const {
 
 glm::dvec3 PlayerController::get_interpolated_eye_position(double alpha) const {
     glm::dvec3 interpolated = get_interpolated_position(alpha);
-    interpolated.y += impl_->config.eye_height - impl_->config.capsule_height / 2.0;
+    interpolated.y += impl_->current_eye_height - impl_->current_capsule_height / 2.0;
+    interpolated += impl_->head_bob_offset;
     return interpolated;
 }
 
@@ -710,6 +987,26 @@ bool PlayerController::is_on_slope() const {
     return impl_->ground_info.on_ground && !impl_->ground_info.stable;
 }
 
+MovementState PlayerController::get_movement_state() const {
+    return impl_->determine_movement_state();
+}
+
+bool PlayerController::is_climbing() const {
+    return impl_->is_on_ladder;
+}
+
+bool PlayerController::is_idle() const {
+    return impl_->determine_movement_state() == MovementState::Idle;
+}
+
+bool PlayerController::wants_to_stand() const {
+    return impl_->wants_to_stand_;
+}
+
+glm::dvec3 PlayerController::get_head_bob_offset() const {
+    return impl_->head_bob_offset;
+}
+
 const GroundInfo& PlayerController::get_ground_info() const {
     return impl_->ground_info;
 }
@@ -731,7 +1028,7 @@ bool PlayerController::is_enabled() const {
 }
 
 AABB PlayerController::get_bounds() const {
-    double half_height = impl_->config.capsule_height / 2.0;
+    double half_height = impl_->current_capsule_height / 2.0;
     double radius = impl_->config.capsule_radius;
 
     return AABB(impl_->position - glm::dvec3(radius, half_height, radius),
