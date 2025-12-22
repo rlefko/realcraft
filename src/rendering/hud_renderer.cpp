@@ -673,12 +673,8 @@ void HUDRenderer::render_hotbar(uint32_t width, uint32_t height) {
         // Item icon (if slot is not empty)
         const auto& slot = data_.hotbar_slots[i];
         if (!slot.empty && block_atlas_) {
-            // Get UV rect from texture atlas
-            glm::vec4 uv = block_atlas_->get_uv_rect(slot.texture_index);
-
-            float icon_x = x + icon_padding;
-            float icon_y = y + icon_padding;
-            float icon_size = slot_size - 2 * icon_padding;
+            // Get UV rect from texture atlas (unused for now)
+            (void)block_atlas_->get_uv_rect(slot.texture_index);
 
             // We need to draw this with the block atlas texture, but for simplicity
             // we'll skip the item icons for now (would require separate draw call)
@@ -699,7 +695,6 @@ void HUDRenderer::render_hotbar(uint32_t width, uint32_t height) {
 void HUDRenderer::render_health_hunger(uint32_t width, uint32_t height) {
     float bar_width = config_.bar_width;
     float bar_height = config_.bar_height;
-    float spacing = config_.bar_spacing;
     float bottom_margin = config_.bar_bottom_margin;
     float slot_size = config_.hotbar_slot_size;
     float hotbar_bottom_margin = config_.hotbar_bottom_margin;
